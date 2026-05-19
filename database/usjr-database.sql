@@ -9,6 +9,15 @@ DROP TABLE IF EXISTS `usjr`.`programs`;
 DROP TABLE IF EXISTS `usjr`.`departments`;
 DROP TABLE IF EXISTS `usjr`.`colleges`;
 
+CREATE TABLE `usjr`.`users` (
+  `username` VARCHAR(50) NOT NULL,
+  `password` VARCHAR(255) NOT NULL,
+  `usertype` VARCHAR(30) NOT NULL DEFAULT 'Staff',
+  `userrole` VARCHAR(30) NOT NULL DEFAULT 'Staff',
+  `status` TINYINT NOT NULL DEFAULT 1,
+  PRIMARY KEY (`username`)
+);
+
 CREATE TABLE `usjr`.`colleges` (
   `collid` INT NOT NULL,
   `collfullname` VARCHAR(100) NOT NULL,
@@ -20,12 +29,14 @@ CREATE TABLE `usjr`.`departments`(
   `deptfullname` VARCHAR(100) NOT NULL,
   `deptshortname` VARCHAR(20),
   `deptcollid` INT NOT NULL, 
+
   PRIMARY KEY (`deptid`),
+
   CONSTRAINT `fk_department_college_id`
      FOREIGN KEY (`deptcollid`) 
      REFERENCES `usjr`.`colleges` (`collid`)
-     ON DELETE NO ACTION
-     ON UPDATE NO ACTION
+     ON DELETE CASCADE
+     ON UPDATE CASCADE
   );
 
 CREATE TABLE `usjr`.`programs` (
@@ -34,17 +45,20 @@ CREATE TABLE `usjr`.`programs` (
   `progshortname` VARCHAR(20),
   `progcollid` INT NOT NULL,
   `progcolldeptid` INT NOT NULL,
+
   PRIMARY KEY (`progid`),
+
   CONSTRAINT `fk_program_college_id`
      FOREIGN KEY (`progcollid`)
      REFERENCES `usjr`.`colleges` (`collid`)
-     ON DELETE NO ACTION
-     ON UPDATE NO ACTION,
+     ON DELETE CASCADE
+     ON UPDATE CASCADE,
+
   CONSTRAINT `fk_program_college_department_id`
      FOREIGN KEY (`progcolldeptid`)
      REFERENCES `usjr`.`departments` (`deptid`)
-     ON DELETE NO ACTION
-     ON UPDATE NO ACTION
+     ON DELETE CASCADE
+     ON UPDATE CASCADE
 );
 
 CREATE TABLE `usjr`.`students` (
@@ -56,20 +70,30 @@ CREATE TABLE `usjr`.`students` (
   `studcolldeptid` INT NOT NULL,
   `studprogid` INT NOT NULL,
   `studyear` INT NOT NULL,
+
   PRIMARY KEY (`studid`),
+  
   CONSTRAINT `fk_student_college_id`
      FOREIGN KEY (`studcollid`)
      REFERENCES `usjr`.`colleges` (`collid`)
-     ON DELETE NO ACTION
-     ON UPDATE NO ACTION,
+     ON DELETE CASCADE
+     ON UPDATE CASCADE,
+     
   CONSTRAINT `fk_student_college_department_id`
      FOREIGN KEY (`studcolldeptid`)
      REFERENCES `usjr`.`departments` (`deptid`)
-     ON DELETE NO ACTION
-     ON UPDATE NO ACTION
+     ON DELETE CASCADE
+     ON UPDATE CASCADE,
+
+   CONSTRAINT `fk_student_program_id`
+     FOREIGN KEY (`studprogid`)
+     REFERENCES `usjr`.`programs` (`progid`)
+     ON DELETE CASCADE
+     ON UPDATE CASCADE
 );
 
-INSERT INTO `usjr`.`users` (username, password) VALUES ('admin', 'admin');
+INSERT INTO `usjr`.`users` (username, password, usertype, userrole, status) VALUES ('admin', 'admin', 'Administrator', 'Administrator', 1);
+INSERT INTO `usjr`.`users` (username, password, usertype, userrole, status) VALUES ('staff', 'staff', 'Staff', 'Staff', 1);
 
 INSERT INTO `usjr`.`colleges` VALUES (3,'School of Business and Management','SBM');
 INSERT INTO `usjr`.`colleges` VALUES (6,'School of Arts and Sciences','SAS');

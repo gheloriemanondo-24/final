@@ -2,22 +2,23 @@
 require_once __DIR__ . '/../../database/Service.php';
 requireLogin('../../login.php');
 $user = currentUser();
+
+// ✅ Block non-admin users from accessing this page
 $isAdmin = strtolower($user['role'] ?? '') === 'administrator' 
         || strtolower($user['role'] ?? '') === 'admin';
 
-try {
-    $schools = $pdo->query("SELECT * FROM colleges WHERE collid <> 0 ORDER BY collfullname")->fetchAll();
-} catch (Throwable $e) {
-    $schools = [];
+if (!$isAdmin) {
+    header('Location: ../homepage.php');
+    exit;
 }
+$msg = $_GET['msg'] ?? '';
 ?>
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Choose School - Departments</title>
+    <title>User Management - USJ-R SMS</title>
     <link rel="stylesheet" href="../../assets/website.css">
 </head>
 <body>
@@ -34,7 +35,7 @@ try {
             <ul>
                 <li><a href="../homepage.php">Home</a></li>
                 <li><a href="../schools/schools.php">Schools</a></li>
-                <li><a href="departments.php" class="active">Departments</a></li>
+                <li><a href="../departments/chooseSchool.php">Departments</a></li>
                 <li><a href="../programs/programs.php">Programs</a></li>
                 <li><a href="../students/students.php">Students</a></li>
                 <?php if ($isAdmin): ?>
@@ -46,33 +47,24 @@ try {
 
     <main class="main-content">
         <div class="section-header">
-            <h2>Select School</h2>
+            <h2>User Dashboard</h2>
         </div>
 
-        <form method="GET" action="departments.php">
-            <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px;">
-                <select name="collid" required style="width:300px; height:38px;">
-    <option value="">Select School</option>
+        <?php if ($msg === 'import_done'): ?>
+            <div class="alert alert-success">✅ File processed. Check the messages on the import page for details.</div>
+        <?php endif; ?>
 
-    <?php foreach ($schools as $s): ?>
-        <option value="<?= h($s['collid']) ?>">
-            <?= h($s['collfullname']) ?>
-        </option>
-    <?php endforeach; ?>
-</select>
-                <button type="submit" class="btn btn-green" style="width:150px; height:38px; display:flex; justify-content:center; align-items:center;">Select Schools</button>
-                <a href="departments.php"
-   class="btn btn-green"
-   style="width:150px; height:38px;
-          display:flex;
-          justify-content:center;
-          align-items:center;
-          text-decoration:none;">
-    List of Schools
-</a>
+        <div class="form-section" style="max-width: 760px;">
+            <div class="alert alert-info" style="margin-bottom:14px;">
+                Choose what you want to do:
             </div>
+
+            <div style="display:flex; gap:12px; flex-wrap:wrap;">
+                <a href="manageUsers.php" class="btn btn-green">Manage Users</a>
+                <a href="userImport.php" class="btn btn-gray">Add Users</a>
+                <a href="../homepage.php" class="btn btn-red">Exit</a>
             </div>
-        </form>
+        </div>
     </main>
 </body>
 </html>

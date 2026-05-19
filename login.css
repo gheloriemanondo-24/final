@@ -98,7 +98,7 @@ body { font-family: sans-serif; background-color: #f4f4f4; margin: 0; padding: 2
     font-size: 13px;
     width: 100px;
 }
-/* .login-form input:focus { 
+ .login-form input:focus { 
     outline: none; 
     border-color: var(--green); 
-} */
+}
