@@ -1,14 +1,14 @@
 # USJ-R School Management System (PHP) — Study Documentation
-Last updated: 2026-05-17
+Last updated: 2026-05-20
 
-This document explains the **purpose**, **logic**, and **flow** of the PHP code in `new-code/` so you can study how the system works.
+This document explains the **purpose**, **logic**, and **flow** of the PHP code in `Final/` so you can study how the system works.
 
 ---
 
-## 1) Project structure (new-code)
+## 1) Project structure (Final)
 
 ```
-new-code/
+Final/
   database/
     db.php
     Service.php
@@ -20,7 +20,9 @@ new-code/
     programs/     (list/create/update/delete + filter)
     students/     (list/create/update/delete)
     users/        (dashboard + manage + import + settings + delete)
-  assets/css/app.css
+  assets/
+    website.css   (shared theme)
+    ui.js         (shared UI effects)
   login.php
 ```
 
@@ -174,12 +176,12 @@ Folder: `screens/schools/`
 
 ### `schoolCreate.php` (School Create)
 **Required fields:**
-- School ID (must start with `21` and be 5 digits: `21xxx`)
+- School ID (numbers only; example: `11`)
 - School Full Name
 - School Short Name
 
 **Logic:**
-- Validate ID using regex: `^21\d{3}$`
+- Validate School ID is **digits only** (server-side via `isDigitsOnly(...)`)
 - Insert into `colleges`
 - Redirect to list with `?msg=created`
 
@@ -222,13 +224,13 @@ Folder: `screens/departments/`
 
 ### `departmentCreate.php`
 **Fields:**
-- Department ID (must start with 21 and be 5 digits)
+- Department ID (numbers only; example: `11001`)
 - Department Full Name
 - Department Short Name
 - Select School
 
 **Logic:**
-- Validate required fields + ID pattern `^21\d{3}$`
+- Validate required fields + Department ID is **digits only** (server-side via `isDigitsOnly(...)`)
 - Insert into `departments`
 
 ### `departmentUpdate.php`
@@ -268,6 +270,7 @@ Your requirement: the page should start with:
 **Dependency logic (JavaScript):**
 - If a school is selected → hide departments not under that school
 - If a department is chosen first (and school not chosen) → auto-select the school of that department
+- Department dropdown is enabled immediately after selecting a school
 
 **Server-side filtering logic:**
 - If `collid` is selected → filter by `p.progcollid = ?`
@@ -281,8 +284,15 @@ Your requirement: the page should start with:
 - Program Full Name
 - Program Short Name
 
+**Program ID rule implemented:**
+- Numbers only
+- Exactly **10 digits**
+- Example: `2111001001`
+> Note: the DB column is `INT`, so values must still fit `<= 2147483647` to insert successfully.
+
 **Buttons (standard create):**
 - Save New Program Entry
+- Back
 - Reset Form
 - Exit
 
@@ -315,7 +325,7 @@ Then show the student list for that selection.
 
 ### `studentCreate.php`
 **All fields required:**
-- Student ID (must start with 21, 10 digits total)
+- Student ID (numbers only; exactly 10 digits)
 - Student First Name
 - Student Middle Name
 - Student Last Name
@@ -323,12 +333,9 @@ Then show the student list for that selection.
 - Select School / Department / Program
 
 **Student ID rule implemented:**
-- Pattern: `21` + `DEPTID(5 digits)` + `SEQ(3 digits)`
-- Example: `2121001001`
-
-The code validates:
-1. Must match `^21\d{8}$` (10 digits starting with 21)
-2. The middle 5 digits must match the selected `deptid`
+- Must be **exactly 10 digits** (numbers only)
+- Example: `2111001001`
+> Note: the DB column is `INT`, so Student ID must be `<= 2147483647` to insert successfully.
 
 The page also shows your example line:
 > `21: SOFA | 21001: DOFA | 2121001001`
@@ -342,7 +349,25 @@ Matches your required delete flow:
 
 ---
 
-## 9) User module (Dashboard + Manage + Import + Settings)
+## 9) Shared UI effects (theme enhancements)
+
+These are **effects only** (no color changes) and apply system-wide:
+- Page enter animation (subtle fade + slide)
+- Breadcrumbs under the page title
+- Sticky table headers + shadow on scroll (inside `.table-wrap`)
+- Click-to-select table rows (highlight selected row)
+- Form effects:
+  - invalid field highlight + small shake
+  - submit button loading spinner / disabled state
+- “Format:” helper text upgraded to a tooltip (`?` icon)
+
+**Files:**
+- `assets/website.css`: shared theme + effects
+- `assets/ui.js`: shared behavior (included via `<script ... defer>`)
+
+---
+
+## 10) User module (Dashboard + Manage + Import + Settings)
 Folder: `screens/users/`
 
 ### `users.php` (User Dashboard)
@@ -440,7 +465,7 @@ admin2,12345,Administrator,Administrator
 
 ---
 
-## 10) Study tips (how to learn from this code)
+## 11) Study tips (how to learn from this code)
 
 If you want to study effectively, follow this order:
 1. `database/usjr-database.sql` → understand tables + foreign keys
@@ -453,7 +478,7 @@ If you want to study effectively, follow this order:
 
 ---
 
-## 11) File-by-file index (quick reference)
+## 12) File-by-file index (quick reference)
 
 - Auth
   - `login.php`: login form + calls `loginUser()`

@@ -66,5 +66,6 @@ try {
             </div>
         </form>
     </main>
+    <script src="../../assets/ui.js" defer></script>
 </body>
 </html>

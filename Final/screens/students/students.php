@@ -22,6 +22,7 @@ $departments = [];
 $programs = [];
 $students = [];
 $titleParts = [];
+$filterError = '';
 
 try {
     $schools = $pdo->query("SELECT * FROM colleges WHERE collid <> 0 ORDER BY collfullname")->fetchAll();
@@ -59,23 +60,42 @@ try {
     // (So clicking Reset clears filters AND hides the list.)
     $shouldList = ($collid > 0 || $deptid > 0 || $progid > 0 || (string)$msg !== '');
 
-    // Infer school/department from selected program (if needed)
-    if ($progid > 0 && ($deptid === 0 || $collid === 0)) {
-        $stmt = $pdo->prepare("SELECT progcollid, progcolldeptid FROM programs WHERE progid = ? AND progid <> 0");
-        $stmt->execute([$progid]);
-        $p = $stmt->fetch();
-        if ($p) {
-            if ($collid === 0) $collid = (int)$p['progcollid'];
-            if ($deptid === 0) $deptid = (int)$p['progcolldeptid'];
-        }
+    // Enforce sequence: School -> Department -> Program
+    // If user tries to pass dept/program without required parent filters, reset and show an error.
+    if ($deptid > 0 && $collid === 0) {
+        $filterError = 'Please select a School first.';
+        $deptid = 0;
+        $progid = 0;
+    }
+    if ($progid > 0 && ($collid === 0 || $deptid === 0)) {
+        $filterError = 'Please select School and Department first.';
+        $progid = 0;
     }
 
-    // If a department is chosen but no school yet, infer the school.
-    if ($deptid > 0 && $collid === 0) {
+    // Validate department belongs to school
+    if ($collid > 0 && $deptid > 0) {
         $stmt = $pdo->prepare("SELECT deptcollid FROM departments WHERE deptid = ? AND deptid <> 0");
         $stmt->execute([$deptid]);
         $d = $stmt->fetch();
-        if ($d) $collid = (int)$d['deptcollid'];
+        if (!$d || (int)$d['deptcollid'] !== $collid) {
+            $filterError = 'Selected Department does not belong to the selected School.';
+            $deptid = 0;
+            $progid = 0;
+        }
+    }
+    // Validate program belongs to school+department
+    if ($collid > 0 && $deptid > 0 && $progid > 0) {
+        $stmt = $pdo->prepare("SELECT progcollid, progcolldeptid FROM programs WHERE progid = ? AND progid <> 0");
+        $stmt->execute([$progid]);
+        $p = $stmt->fetch();
+        if (
+            !$p ||
+            (int)$p['progcollid'] !== $collid ||
+            (int)$p['progcolldeptid'] !== $deptid
+        ) {
+            $filterError = 'Selected Program does not belong to the selected School/Department.';
+            $progid = 0;
+        }
     }
 
     if ($collid > 0) {
@@ -197,6 +217,10 @@ if (!empty($titleParts)) $pageTitle = 'Student List - ' . implode(' / ', $titleP
             <div class="alert alert-danger">❌ Database error. Import the SQL and check your DB credentials.</div>
         <?php endif; ?>
 
+        <?php if ($filterError): ?>
+            <div class="alert alert-danger">❌ <?= h($filterError) ?></div>
+        <?php endif; ?>
+
         <div class="form-section" style="max-width: 980px; margin-bottom: 14px;">
             <h3 style="margin:0 0 10px;">Select School / Department / Program</h3>
             <form method="GET" action="students.php" style="max-width: 760px;">
@@ -206,7 +230,7 @@ if (!empty($titleParts)) $pageTitle = 'Student List - ' . implode(' / ', $titleP
                         <option value="">Select School</option>
                         <?php foreach ($schools as $s): ?>
                             <option value="<?= h($s['collid']) ?>" <?= (string)$s['collid'] === (string)$collid ? 'selected' : '' ?>>
-                                <?= h($s['collfullname'] . ' (' . $s['collshortname'] . ')') ?>
+                                <?= h($s['collfullname']) ?>
                             </option>
                         <?php endforeach; ?>
                     </select>
@@ -215,7 +239,7 @@ if (!empty($titleParts)) $pageTitle = 'Student List - ' . implode(' / ', $titleP
 
                 <div class="form-row">
                     <label>Select Department:</label>
-                    <select id="deptid" name="deptid">
+                    <select id="deptid" name="deptid" <?= $collid > 0 ? '' : 'disabled' ?>>
                         <option value="">Select Department</option>
                         <?php foreach ($departments as $d): ?>
                             <option
@@ -223,7 +247,7 @@ if (!empty($titleParts)) $pageTitle = 'Student List - ' . implode(' / ', $titleP
                                 data-collid="<?= h($d['deptcollid']) ?>"
                                 <?= (string)$d['deptid'] === (string)$deptid ? 'selected' : '' ?>
                             >
-                                <?= h($d['deptfullname'] . ' (' . ($d['collshortname'] ?? '-') . ')') ?>
+                                <?= h($d['deptfullname']) ?>
                             </option>
                         <?php endforeach; ?>
                     </select>
@@ -232,7 +256,7 @@ if (!empty($titleParts)) $pageTitle = 'Student List - ' . implode(' / ', $titleP
 
                 <div class="form-row">
                     <label>Select Program:</label>
-                    <select id="progid" name="progid">
+                    <select id="progid" name="progid" <?= ($collid > 0 && $deptid > 0) ? '' : 'disabled' ?>>
                         <option value="">Select Program</option>
                         <?php foreach ($programs as $p): ?>
                             <option
@@ -241,7 +265,7 @@ if (!empty($titleParts)) $pageTitle = 'Student List - ' . implode(' / ', $titleP
                                 data-deptid="<?= h($p['progcolldeptid']) ?>"
                                 <?= (string)$p['progid'] === (string)$progid ? 'selected' : '' ?>
                             >
-                                <?= h(($p['progfullname']) . ($p['progshortname'] ? ' (' . $p['progshortname'] . ')' : '')) ?>
+                                <?= h($p['progfullname']) ?>
                             </option>
                         <?php endforeach; ?>
                     </select>
@@ -336,14 +360,18 @@ if (!empty($titleParts)) $pageTitle = 'Student List - ' . implode(' / ', $titleP
     </main>
 
     <script>
-        // Dependency logic:
-        // - If school is selected, department list is filtered to that school.
-        // - If school is not selected yet, user can still choose any department.
-        // - Program list depends on selected school + selected department.
-        // - If a program is selected, school/department will auto-select to match it.
+        // Filtering sequence:
+        // - Must choose School first, then Department, then (optional) Program.
+        // - Department options depend on School.
+        // - Program options depend on School + Department.
         const schoolSelect = document.getElementById('collid');
         const deptSelect = document.getElementById('deptid');
         const progSelect = document.getElementById('progid');
+
+        function setEnabled() {
+            deptSelect.disabled = !schoolSelect.value;
+            progSelect.disabled = !(schoolSelect.value && deptSelect.value);
+        }
 
         function filterDeptOptions() {
             const collid = schoolSelect.value;
@@ -357,49 +385,33 @@ if (!empty($titleParts)) $pageTitle = 'Student List - ' . implode(' / ', $titleP
             const deptid = deptSelect.value;
             const opts = Array.from(progSelect.querySelectorAll('option[data-collid]'));
             opts.forEach(o => {
-                // If school not chosen, allow user to choose program (do not hide yet)
-                if (!collid) { o.hidden = false; return; }
                 const matchSchool = o.dataset.collid === collid;
-                const matchDept = !deptid || o.dataset.deptid === deptid;
+                const matchDept = o.dataset.deptid === deptid;
                 o.hidden = !(matchSchool && matchDept);
             });
             if (progSelect.selectedOptions[0]?.hidden) progSelect.value = '';
         }
 
-        function syncFromDept() {
-            const selected = deptSelect.selectedOptions[0];
-            const deptCollid = selected?.dataset?.collid;
-            if (deptCollid && !schoolSelect.value) schoolSelect.value = deptCollid;
-        }
-
-        function syncFromProgram() {
-            const selected = progSelect.selectedOptions[0];
-            const pCollid = selected?.dataset?.collid;
-            const pDeptid = selected?.dataset?.deptid;
-            if (pCollid) schoolSelect.value = pCollid;
-            if (pDeptid) deptSelect.value = pDeptid;
-        }
-
         schoolSelect.addEventListener('change', () => {
+            // Reset chain
+            deptSelect.value = '';
+            progSelect.value = '';
             filterDeptOptions();
+            setEnabled();
             filterProgramOptions();
         });
         deptSelect.addEventListener('change', () => {
-            syncFromDept();
-            filterDeptOptions();
-            filterProgramOptions();
-        });
-        progSelect.addEventListener('change', () => {
-            syncFromProgram();
-            filterDeptOptions();
+            // Reset program when dept changes
+            progSelect.value = '';
+            setEnabled();
             filterProgramOptions();
         });
 
         // initial
-        syncFromProgram();
-        syncFromDept();
         filterDeptOptions();
+        setEnabled();
         filterProgramOptions();
     </script>
+    <script src="../../assets/ui.js" defer></script>
 </body>
 </html>

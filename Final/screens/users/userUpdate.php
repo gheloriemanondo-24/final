@@ -250,5 +250,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             p?.focus();
         });
     </script>
+    <script src="../../assets/ui.js" defer></script>
 </body>
 </html>

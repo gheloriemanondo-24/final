@@ -337,9 +337,9 @@ $pageTitle = 'Select School and Department';
 </main>
 
     <script>
-        // Client-side behavior (match old "select school first" flow):
-        // - After selecting a school, user must click "Select School" to enable department dropdown.
-        // - Changing the school disables department again (requires clicking "Select School" again).
+        // Client-side behavior:
+        // - Enable the department dropdown immediately after a school is selected.
+        // - Filter department options to those that belong to the selected school.
         const schoolSelect = document.getElementById('collid');
         const deptSelect = document.getElementById('deptid');
         const deptBtn = document.getElementById('btn-dept');
@@ -358,15 +358,17 @@ $pageTitle = 'Select School and Department';
             if (deptSelect.selectedOptions[0]?.hidden) deptSelect.value = '';
         }
 
-        // Changing the school resets department and requires clicking "Select School" again.
+        // Changing the school resets department and enables the department dropdown.
         schoolSelect.addEventListener('change', () => {
             deptSelect.value = '';
-            setDeptEnabled(false);
+            setDeptEnabled(!!schoolSelect.value);
+            filterDeptOptions();
         });
 
-        // On initial load, keep department availability as rendered by server.
-        // Still ensure the options are filtered based on the currently selected school.
+        // Initial load
+        setDeptEnabled(!!schoolSelect.value);
         filterDeptOptions();
     </script>
+    <script src="../../assets/ui.js" defer></script>
 </body>
 </html>

@@ -198,5 +198,6 @@ $to = min($offset + $perPage, $total);
             </div>
         </div>
     </main>
+    <script src="../../assets/ui.js" defer></script>
 </body>
 </html>

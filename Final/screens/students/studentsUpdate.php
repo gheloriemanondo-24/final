@@ -263,5 +263,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         deptSelect.addEventListener('change', filterProgramOptions);
         onSchoolChange();
     </script>
+    <script src="../../assets/ui.js" defer></script>
 </body>
 </html>

@@ -117,5 +117,6 @@ try {
         schoolSelect.addEventListener('change', filterDeptOptions);
         filterDeptOptions();
     </script>
+    <script src="../../assets/ui.js" defer></script>
 </body>
 </html>

@@ -162,5 +162,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </div>
     </main>
 
+    <script src="../../assets/ui.js" defer></script>
 </body>
 </html>

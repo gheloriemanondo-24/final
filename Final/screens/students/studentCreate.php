@@ -289,5 +289,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         });
         onSchoolChange();
     </script>
+    <script src="../../assets/ui.js" defer></script>
 </body>
 </html>
