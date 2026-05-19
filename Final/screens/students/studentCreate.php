@@ -171,10 +171,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <span class="error-msg" id="err-id" style="color:#666;">Format: numbers only, exactly 10 digits (example: 2111001001)</span>
                     <?php endif; ?>
                 </div>
-                <p class="total-row" style="margin-top:-6px;">
-                    Example: <strong>21: SOFA</strong> | <strong>21001: DOFA</strong> | <strong>2121001001</strong>
-                </p>
-
                 <div class="form-row">
                     <label>Student First Name:</label>
                     <input type="text" id="studfirstname" name="studfirstname" value="<?= h($_POST['studfirstname'] ?? '') ?>">
