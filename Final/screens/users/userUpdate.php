@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/../../database/Service.php';
 requireLogin('../../login.php');
+requireCapability('manage_users', '../homepage.php');
 $user = currentUser();
 
 $username = trim($_GET['username'] ?? '');
@@ -13,8 +14,14 @@ $hasRole = tableHasColumn('users', 'role'); // older schema
 
 function normalizeUserRole(string $role): string {
     $role = trim($role);
-    if ($role === '') return 'Staff';
-    if (strtolower($role) === 'others') return 'Staff';
+    if ($role === '') return 'Creator';
+    if (strtolower($role) === 'others') return 'Creator';
+    if (strtolower($role) === 'staff') return 'Creator'; // legacy default
+    // Normalize casing to match dropdown values
+    $known = ['Administrator','Creator','Viewer','Updater','Remover'];
+    foreach ($known as $k) {
+        if (strtolower($k) === strtolower($role)) return $k;
+    }
     return $role;
 }
 
@@ -38,8 +45,8 @@ if (!$u) {
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $usertype = normalizeUserRole((string)($_POST['usertype'] ?? ($_POST['role'] ?? 'Staff')));
-    $userrole = normalizeUserRole((string)($_POST['userrole'] ?? ($_POST['role'] ?? 'Staff')));
+    $usertype = normalizeUserRole((string)($_POST['usertype'] ?? ($_POST['role'] ?? 'Creator')));
+    $userrole = normalizeUserRole((string)($_POST['userrole'] ?? ($_POST['role'] ?? 'Creator')));
 
     $newPassword = (string)($_POST['password'] ?? '');
     $confirmPassword = (string)($_POST['confirm_password'] ?? '');
@@ -57,6 +64,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($error === '' && $newPassword !== '') {
         if ($confirmPassword === '' || $newPassword !== $confirmPassword) {
             $error = 'Password and Confirm Password must match.';
+        }
+    }
+
+    // Do not update if nothing has changed
+    if ($error === '') {
+        $currentType = normalizeUserRole((string)($u['usertype'] ?? $u['role'] ?? 'Creator'));
+        $currentRole = normalizeUserRole((string)($u['userrole'] ?? $u['role'] ?? 'Creator'));
+        $noRoleChange = (!$hasUserType || $usertype === $currentType) && ($userrole === $currentRole);
+        if ($newPassword === '' && $noRoleChange) {
+            $error = 'Nothing to update. No changes were made.';
         }
     }
 
@@ -119,7 +136,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <ul>
                 <li><a href="../homepage.php">Home</a></li>
                 <li><a href="../schools/schools.php">Schools</a></li>
-                <li><a href="../departments/departments.php">Departments</a></li>
+                <li><a href="../departments/chooseSchool.php">Departments</a></li>
                 <li><a href="../programs/programs.php">Programs</a></li>
                 <li><a href="../students/students.php">Students</a></li>
                 <li><a href="users.php" class="active">Users</a></li>
@@ -160,10 +177,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 <tr>
                                     <td><strong>User Type:</strong></td>
                                     <td>
-                                        <?php $selType = (string)($_POST['usertype'] ?? ($u['usertype'] ?? 'Staff')); ?>
+                                        <?php $selType = normalizeUserRole((string)($_POST['usertype'] ?? ($u['usertype'] ?? 'Creator'))); ?>
                                         <select name="usertype">
                                             <option value="Administrator" <?= $selType === 'Administrator' ? 'selected' : '' ?>>Administrator</option>
-                                            <option value="Staff" <?= $selType === 'Staff' ? 'selected' : '' ?>>Staff</option>
+                                            <option value="Creator" <?= $selType === 'Creator' ? 'selected' : '' ?>>Creator</option>
+                                            <option value="Viewer" <?= $selType === 'Viewer' ? 'selected' : '' ?>>Viewer</option>
+                                            <option value="Updater" <?= $selType === 'Updater' ? 'selected' : '' ?>>Updater</option>
+                                            <option value="Remover" <?= $selType === 'Remover' ? 'selected' : '' ?>>Remover</option>
                                         </select>
                                     </td>
                                 </tr>
@@ -173,12 +193,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 <td><strong>User Role:</strong></td>
                                 <td>
                                     <?php
-                                        $selRole = (string)($_POST['userrole'] ?? $_POST['role'] ?? ($u['userrole'] ?? $u['role'] ?? 'Staff'));
+                                        $selRole = (string)($_POST['userrole'] ?? $_POST['role'] ?? ($u['userrole'] ?? $u['role'] ?? 'Creator'));
                                         $selRole = normalizeUserRole($selRole);
                                     ?>
                                     <select name="<?= $hasUserRole ? 'userrole' : 'role' ?>">
                                         <option value="Administrator" <?= $selRole === 'Administrator' ? 'selected' : '' ?>>Administrator</option>
-                                        <option value="Staff" <?= $selRole === 'Staff' ? 'selected' : '' ?>>Staff</option>
+                                        <option value="Creator" <?= $selRole === 'Creator' ? 'selected' : '' ?>>Creator</option>
+                                        <option value="Viewer" <?= $selRole === 'Viewer' ? 'selected' : '' ?>>Viewer</option>
+                                        <option value="Updater" <?= $selRole === 'Updater' ? 'selected' : '' ?>>Updater</option>
+                                        <option value="Remover" <?= $selRole === 'Remover' ? 'selected' : '' ?>>Remover</option>
                                     </select>
                                 </td>
                             </tr>

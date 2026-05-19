@@ -1,9 +1,12 @@
 <?php
 require_once __DIR__ . '/../../database/Service.php';
 requireLogin('../../login.php');
+requireCapability('view', '../homepage.php');
 $user = currentUser();
-$isAdmin = strtolower($user['role'] ?? '') === 'administrator' 
-        || strtolower($user['role'] ?? '') === 'admin';
+$isAdmin = can('manage_users');
+$canCreate = can('create');
+$canUpdate = can('update');
+$canDelete = can('delete');
 $msg = $_GET['msg'] ?? '';
 $collid = (int)($_GET['collid'] ?? 0);
 $deptid = (int)($_GET['deptid'] ?? 0);
@@ -52,6 +55,10 @@ try {
 }
 
 try {
+    // Show the table ONLY after user applies a filter OR after a CRUD redirect message.
+    // (So clicking Reset clears filters AND hides the list.)
+    $shouldList = ($collid > 0 || $deptid > 0 || $progid > 0 || (string)$msg !== '');
+
     // Infer school/department from selected program (if needed)
     if ($progid > 0 && ($deptid === 0 || $collid === 0)) {
         $stmt = $pdo->prepare("SELECT progcollid, progcolldeptid FROM programs WHERE progid = ? AND progid <> 0");
@@ -90,44 +97,47 @@ try {
         if ($p) $titleParts[] = $p['progfullname'];
     }
 
-    $countSql = "SELECT COUNT(*) FROM students s WHERE s.studid <> 0";
-    $countParams = [];
-    if ($collid > 0) { $countSql .= " AND s.studcollid = ?"; $countParams[] = $collid; }
-    if ($deptid > 0) { $countSql .= " AND s.studcolldeptid = ?"; $countParams[] = $deptid; }
-    if ($progid > 0) { $countSql .= " AND s.studprogid = ?"; $countParams[] = $progid; }
-    $stmt = $pdo->prepare($countSql);
-    $stmt->execute($countParams);
-    $total = (int)$stmt->fetchColumn();
+    if ($shouldList) {
+        $countSql = "SELECT COUNT(*) FROM students s WHERE s.studid <> 0";
+        $countParams = [];
+        if ($collid > 0) { $countSql .= " AND s.studcollid = ?"; $countParams[] = $collid; }
+        if ($deptid > 0) { $countSql .= " AND s.studcolldeptid = ?"; $countParams[] = $deptid; }
+        if ($progid > 0) { $countSql .= " AND s.studprogid = ?"; $countParams[] = $progid; }
+        $stmt = $pdo->prepare($countSql);
+        $stmt->execute($countParams);
+        $total = (int)$stmt->fetchColumn();
 
-    $totalPages = max(1, (int)ceil($total / $perPage));
-    $page = min($page, $totalPages);
-    $offset = ($page - 1) * $perPage;
+        $totalPages = max(1, (int)ceil($total / $perPage));
+        $page = min($page, $totalPages);
+        $offset = ($page - 1) * $perPage;
 
-    $sql = "
-        SELECT s.*,
-               c.collfullname, c.collshortname,
-               d.deptfullname,
-               p.progfullname, p.progshortname
-        FROM students s
-        LEFT JOIN colleges c ON c.collid = s.studcollid
-        LEFT JOIN departments d ON d.deptid = s.studcolldeptid
-        LEFT JOIN programs p ON p.progid = s.studprogid
-        WHERE s.studid <> 0
-    ";
-    $params = [];
-    if ($collid > 0) { $sql .= " AND s.studcollid = ?"; $params[] = $collid; }
-    if ($deptid > 0) { $sql .= " AND s.studcolldeptid = ?"; $params[] = $deptid; }
-    if ($progid > 0) { $sql .= " AND s.studprogid = ?"; $params[] = $progid; }
-    $sql .= " ORDER BY s.studid LIMIT $perPage OFFSET $offset";
+        $sql = "
+            SELECT s.*,
+                   c.collfullname, c.collshortname,
+                   d.deptfullname,
+                   p.progfullname, p.progshortname
+            FROM students s
+            LEFT JOIN colleges c ON c.collid = s.studcollid
+            LEFT JOIN departments d ON d.deptid = s.studcolldeptid
+            LEFT JOIN programs p ON p.progid = s.studprogid
+            WHERE s.studid <> 0
+        ";
+        $params = [];
+        if ($collid > 0) { $sql .= " AND s.studcollid = ?"; $params[] = $collid; }
+        if ($deptid > 0) { $sql .= " AND s.studcolldeptid = ?"; $params[] = $deptid; }
+        if ($progid > 0) { $sql .= " AND s.studprogid = ?"; $params[] = $progid; }
+        $sql .= " ORDER BY s.studid LIMIT $perPage OFFSET $offset";
 
-$stmt = $pdo->prepare($sql);
-
-foreach ($params as $i => $v) {
-    $stmt->bindValue($i + 1, $v, PDO::PARAM_INT);
-}
-
-$stmt->execute();
-    $students = $stmt->fetchAll();
+        $stmt = $pdo->prepare($sql);
+        foreach ($params as $i => $v) $stmt->bindValue($i + 1, $v, PDO::PARAM_INT);
+        $stmt->execute();
+        $students = $stmt->fetchAll();
+    } else {
+        $total = 0;
+        $students = [];
+        $totalPages = 1;
+        $offset = 0;
+    }
 } catch (Throwable $e) {
     $msg = 'db_error';
     $students = [];
@@ -247,7 +257,9 @@ if (!empty($titleParts)) $pageTitle = 'Student List - ' . implode(' / ', $titleP
         </div>
 
         <div style="margin-bottom:14px;">
-            <a href="studentCreate.php" class="btn btn-green">➕ Create Student Entry</a>
+            <?php if ($canCreate): ?>
+                <a href="studentCreate.php" class="btn btn-green">➕ Create Student Entry</a>
+            <?php endif; ?>
         </div>
 
         <div class="table-wrap">
@@ -280,8 +292,15 @@ if (!empty($titleParts)) $pageTitle = 'Student List - ' . implode(' / ', $titleP
                                 <td><?= h(($s['progfullname'] ?? '-')) ?></td>
                                 <td><?= h($s['studyear']) ?></td>
                                 <td>
-                                    <a href="studentUpdate.php?studid=<?= urlencode((string)$s['studid']) ?>" class="btn btn-green btn-sm">✏️ Update</a>
-                                    <a href="studentDelete.php?studid=<?= urlencode((string)$s['studid']) ?>" class="btn btn-red btn-sm">🗑️ Delete</a>
+                                    <?php if ($canUpdate): ?>
+                                        <a href="studentUpdate.php?studid=<?= urlencode((string)$s['studid']) ?>" class="btn btn-green btn-sm">✏️ Update</a>
+                                    <?php endif; ?>
+                                    <?php if ($canDelete): ?>
+                                        <a href="studentDelete.php?studid=<?= urlencode((string)$s['studid']) ?>" class="btn btn-red btn-sm">🗑️ Delete</a>
+                                    <?php endif; ?>
+                                    <?php if (!$canUpdate && !$canDelete): ?>
+                                        <span style="color:#999;">-</span>
+                                    <?php endif; ?>
                                 </td>
                             </tr>
                         <?php endforeach; ?>

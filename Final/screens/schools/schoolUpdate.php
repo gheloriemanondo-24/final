@@ -1,9 +1,9 @@
 <?php
 require_once __DIR__ . '/../../database/Service.php';
 requireLogin('../../login.php');
+requireCapability('update', '../homepage.php');
 $user = currentUser();
-$isAdmin = strtolower($user['role'] ?? '') === 'administrator' 
-        || strtolower($user['role'] ?? '') === 'admin';
+$isAdmin = can('manage_users');
 
 $collid = (int)($_GET['collid'] ?? 0);
 $error = '';
@@ -30,9 +30,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if ($collfullname === '') {
         $errors['collfullname'] = 'School Full Name entry cannot be empty';
+    } elseif (!isLettersOnly($collfullname)) {
+        $errors['collfullname'] = 'School Full Name must contain letters only';
     }
     if ($collshortname === '') {
         $errors['collshortname'] = 'School Short Name entry cannot be empty';
+    } elseif (!isLettersOnly($collshortname)) {
+        $errors['collshortname'] = 'School Short Name must contain letters only';
     }
 
     if (!empty($errors)) {
@@ -77,7 +81,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <ul>
                 <li><a href="../homepage.php">Home</a></li>
                 <li><a href="schools.php" class="active">Schools</a></li>
-                <li><a href="../departments/departments.php">Departments</a></li>
+                <li><a href="../departments/chooseSchool.php">Departments</a></li>
                 <li><a href="../programs/programs.php">Programs</a></li>
                 <li><a href="../students/students.php">Students</a></li>
                 <?php if ($isAdmin): ?>
@@ -104,7 +108,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <form id="schoolUpdateForm" method="POST" action="schoolUpdate.php?collid=<?= urlencode((string)$collid) ?>">
                 <div class="form-row" style="display:grid; grid-template-columns: 180px 360px 1fr; align-items:center; gap:10px; margin-bottom:12px;">
                     <label>School ID:</label>
-                    <input type="number" id="collid" readonly value="<?= h($school['collid']) ?>">
+                    <input type="text" id="collid" readonly value="<?= h($school['collid']) ?>">
                     <span class="error-msg"></span>
                 </div>
 

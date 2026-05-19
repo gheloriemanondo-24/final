@@ -1,9 +1,9 @@
 <?php
 require_once __DIR__ . '/../../database/Service.php';
 requireLogin('../../login.php');
+requireCapability('create', '../homepage.php');
 $user = currentUser();
-$isAdmin = strtolower($user['role'] ?? '') === 'administrator' 
-        || strtolower($user['role'] ?? '') === 'admin';
+$isAdmin = can('manage_users');
 
 $error = '';
 $schools = [];
@@ -29,7 +29,10 @@ try {
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $studid = (int)($_POST['studid'] ?? 0);
+    // NOTE: Student ID is a 10-digit identifier. We keep it as a string first
+    // to preserve leading zeros (if any) and validate properly before casting.
+    $studidRaw = trim((string)($_POST['studid'] ?? ''));
+    $studid = (int)$studidRaw;
     $studlastname = trim($_POST['studlastname'] ?? '');
     $studfirstname = trim($_POST['studfirstname'] ?? '');
     $studmidname = trim($_POST['studmidname'] ?? '');
@@ -38,11 +41,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $studprogid = (int)($_POST['studprogid'] ?? 0);
     $studyear = (int)($_POST['studyear'] ?? 0);
 
-    $studidStr = (string)$studid;
+    $studidStr = $studidRaw;
     $deptStr = $studcolldeptid > 0 ? str_pad((string)$studcolldeptid, 5, '0', STR_PAD_LEFT) : '';
 
     if (
-    $studid === 0 ||
+    $studidStr === '' ||
     !preg_match('/^\d{10}$/', $studidStr) ||
     $studfirstname === '' ||
     $studmidname === '' ||
@@ -53,6 +56,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $studyear === 0
 ) {
     $error = 'All fields are required. Student ID must be exactly 10 digits.';
+} elseif ((int)$studidStr > 2147483647) {
+    // In the provided SQL, students.studid is INT (max 2147483647).
+    // IDs higher than this will fail to insert.
+    $error = 'Student ID is too large for the database. Please follow the suggested format (e.g. 21 + deptid + 001 like 2111001001).';
 } else {
     try {
         $stmt = $pdo->prepare("
@@ -71,11 +78,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $studyear
         ]);
 
-        header('Location: students.php?msg=created');
+        // After creating, redirect back to Student List with the selected
+        // school/department/program auto-applied as filters.
+        $redirectParams = [
+            'msg'    => 'created',
+            'collid' => $studcollid,
+            'deptid' => $studcolldeptid,
+            'progid' => $studprogid,
+        ];
+        header('Location: students.php?' . http_build_query($redirectParams));
         exit;
 
     } catch (Throwable $e) {
-        $error = 'Could not create student. (Maybe duplicate ID?)';
+        // Most common reasons:
+        // - duplicate primary key (same Student ID already exists)
+        // - out-of-range ID for INT column (handled above, but keep message friendly)
+        $error = 'Could not create student. Student ID may already exist.';
     }
 }
 }
@@ -102,7 +120,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <ul>
                 <li><a href="../homepage.php">Home</a></li>
                 <li><a href="../schools/schools.php">Schools</a></li>
-                <li><a href="../departments/departments.php">Departments</a></li>
+                <li><a href="../departments/chooseSchool.php">Departments</a></li>
                 <li><a href="../programs/programs.php">Programs</a></li>
                 <li><a href="students.php" class="active">Students</a></li>
                 <?php if ($isAdmin): ?>

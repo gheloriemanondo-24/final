@@ -1,9 +1,9 @@
 <?php
 require_once __DIR__ . '/../../database/Service.php';
 requireLogin('../../login.php');
+requireCapability('create', '../homepage.php');
 $user = currentUser();
-$isAdmin = strtolower($user['role'] ?? '') === 'administrator' 
-        || strtolower($user['role'] ?? '') === 'admin';
+$isAdmin = can('manage_users');
 
 $error = '';
 $schools = [];
@@ -27,22 +27,37 @@ try {
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $progid = (int)($_POST['progid'] ?? 0);
-    $progfullname = trim($_POST['progfullname'] ?? '');
-    $progshortname = trim($_POST['progshortname'] ?? '');
+    $progidRaw = (string)($_POST['progid'] ?? '');
+    $progfullname = trim((string)($_POST['progfullname'] ?? ''));
+    $progshortname = trim((string)($_POST['progshortname'] ?? ''));
     $progcollid = (int)($_POST['progcollid'] ?? 0);
     $progcolldeptid = (int)($_POST['progcolldeptid'] ?? 0);
 
-    if ($progid === 0 || $progfullname === '' || $progcollid === 0 || $progcolldeptid === 0) {
-        $error = 'Program ID, Full Name, School, and Department are required.';
+    if (trim($progidRaw) === '' || !isDigitsOnly($progidRaw)) {
+        $error = 'Program ID is required (numbers only).';
+    } elseif ($progfullname === '' || $progcollid === 0 || $progcolldeptid === 0) {
+        $error = 'Program Full Name, School, and Department are required.';
     } else {
         try {
-            $stmt = $pdo->prepare("INSERT INTO programs (progid, progfullname, progshortname, progcollid, progcolldeptid) VALUES (?, ?, ?, ?, ?)");
-            $stmt->execute([$progid, $progfullname, $progshortname, $progcollid, $progcolldeptid]);
-            header('Location: programs.php?msg=created&collid=' . urlencode((string)$progcollid) . '&deptid=' . urlencode((string)$progcolldeptid));
-            exit;
+            // Server-side check: department must belong to selected school
+            $stmt = $pdo->prepare("SELECT deptcollid FROM departments WHERE deptid = ? AND deptid <> 0");
+            $stmt->execute([$progcolldeptid]);
+            $d = $stmt->fetch();
+            if (!$d) {
+                throw new RuntimeException('Invalid department');
+            }
+            if ((int)$d['deptcollid'] !== $progcollid) {
+                $error = 'Selected Department does not belong to the selected School.';
+            } else {
+                $progid = (int)$progidRaw;
+                $stmt = $pdo->prepare("INSERT INTO programs (progid, progfullname, progshortname, progcollid, progcolldeptid) VALUES (?, ?, ?, ?, ?)");
+                $stmt->execute([$progid, $progfullname, $progshortname, $progcollid, $progcolldeptid]);
+                // PRG: do not keep filter selections after create
+                header('Location: programs.php?msg=created');
+                exit;
+            }
         } catch (Throwable $e) {
-            $error = 'Could not create program. (Maybe duplicate ID?)';
+            if ($error === '') $error = 'Could not create program. (Maybe duplicate ID?)';
         }
     }
 }
@@ -69,7 +84,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <ul>
                 <li><a href="../homepage.php">Home</a></li>
                 <li><a href="../schools/schools.php">Schools</a></li>
-                <li><a href="../departments/departments.php">Departments</a></li>
+                <li><a href="../departments/chooseSchool.php">Departments</a></li>
                 <li><a href="programs.php" class="active">Programs</a></li>
                 <li><a href="../students/students.php">Students</a></li>
                 <?php if ($isAdmin): ?>
@@ -120,7 +135,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 <div class="form-row" style="display:grid; grid-template-columns: 180px 360px 1fr; align-items:center; gap:10px; margin-bottom:12px;">
                     <label>Program ID:</label>
-                    <input type="number" id="progid" name="progid" value="<?= h($_POST['progid'] ?? '') ?>">
+                    <input type="text" id="progid" name="progid" value="<?= h($_POST['progid'] ?? '') ?>">
                     <span class="error-msg" id="err-id"></span>
                 </div>
 

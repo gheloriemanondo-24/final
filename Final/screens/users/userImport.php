@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/../../database/Service.php';
 requireLogin('../../login.php');
+requireCapability('manage_users', '../homepage.php');
 $user = currentUser();
 
 $hasUserType = tableHasColumn('users', 'usertype');
@@ -11,11 +12,17 @@ $error = '';
 $messages = [];
 $hadErrors = false;
 
-function normalizeRole(string $role): string {
-    $role = trim($role);
-    if ($role === '') return 'Staff';
-    if (strtolower($role) === 'others') return 'Staff';
-    return $role;
+function normalizeImportedRoleLabel(string $role): string {
+    // Use the shared canonical normalizer from Service.php, then map to UI/DB label.
+    $canon = normalizeRole($role); // returns lowercase canonical role
+    return match ($canon) {
+        'administrator' => 'Administrator',
+        'creator'       => 'Creator',
+        'viewer'        => 'Viewer',
+        'updater'       => 'Updater',
+        'remover'       => 'Remover',
+        default         => 'Creator',
+    };
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -71,8 +78,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 while (($row = fgetcsv($fh, 0, ",", "\"", "\\")) !== false) {
                     $username = trim((string)($row[$idx['username'] ?? 0] ?? ''));
                     $password = (string)($row[$idx['password'] ?? 1] ?? '');
-                    $usertype = normalizeRole((string)($row[$idx['usertype'] ?? 2] ?? 'Staff'));
-                    $userrole = normalizeRole((string)($row[$idx['userrole'] ?? 3] ?? $row[$idx['role'] ?? 3] ?? 'Staff'));
+                    $usertype = normalizeImportedRoleLabel((string)($row[$idx['usertype'] ?? 2] ?? 'Creator'));
+                    $userrole = normalizeImportedRoleLabel((string)($row[$idx['userrole'] ?? 3] ?? $row[$idx['role'] ?? 3] ?? 'Creator'));
 
                     if ($username === '') continue;
 
@@ -142,7 +149,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <ul>
                 <li><a href="../homepage.php">Home</a></li>
                 <li><a href="../schools/schools.php">Schools</a></li>
-                <li><a href="../departments/departments.php">Departments</a></li>
+                <li><a href="../departments/chooseSchool.php">Departments</a></li>
                 <li><a href="../programs/programs.php">Programs</a></li>
                 <li><a href="../students/students.php">Students</a></li>
                 <li><a href="users.php" class="active">Users</a></li>

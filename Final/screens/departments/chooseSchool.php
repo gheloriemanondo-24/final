@@ -1,9 +1,9 @@
 <?php
 require_once __DIR__ . '/../../database/Service.php';
 requireLogin('../../login.php');
+requireCapability('view', '../homepage.php');
 $user = currentUser();
-$isAdmin = strtolower($user['role'] ?? '') === 'administrator' 
-        || strtolower($user['role'] ?? '') === 'admin';
+$isAdmin = can('manage_users');
 
 try {
     $schools = $pdo->query("SELECT * FROM colleges WHERE collid <> 0 ORDER BY collfullname")->fetchAll();
@@ -61,7 +61,7 @@ try {
     <?php endforeach; ?>
 </select>
                 <button type="submit" class="btn btn-green" style="width:150px; height:38px; display:flex; justify-content:center; align-items:center;">Select Schools</button>
-                <a href="departments.php"
+                <a href="../schools/schools.php"
    class="btn btn-green"
    style="width:150px; height:38px;
           display:flex;

@@ -1,9 +1,9 @@
 <?php
 require_once __DIR__ . '/../../database/Service.php';
 requireLogin('../../login.php');
+requireCapability('update', '../homepage.php');
 $user = currentUser();
-$isAdmin = strtolower($user['role'] ?? '') === 'administrator' 
-        || strtolower($user['role'] ?? '') === 'admin';
+$isAdmin = can('manage_users');
 
 $deptid = (int)($_GET['deptid'] ?? 0);
 $error = '';
@@ -104,7 +104,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <form id="deptUpdateForm" method="POST" action="departmentUpdate.php?deptid=<?= urlencode((string)$deptid) ?>">
                 <div class="form-row" style="display:grid; grid-template-columns: 180px 360px 1fr; align-items:center; gap:10px; margin-bottom:12px;">
                     <label>Department ID:</label>
-                    <input type="number" id="deptid" readonly value="<?= h($dept['deptid']) ?>">
+                    <input type="text" id="deptid" readonly value="<?= h($dept['deptid']) ?>">
                     <span class="error-msg"></span>
                 </div>
 

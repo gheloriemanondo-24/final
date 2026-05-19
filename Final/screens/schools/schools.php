@@ -1,9 +1,12 @@
 <?php
 require_once __DIR__ . '/../../database/Service.php';
 requireLogin('../../login.php');
+requireCapability('view', '../homepage.php');
 $user = currentUser();
-$isAdmin = strtolower($user['role'] ?? '') === 'administrator' 
-        || strtolower($user['role'] ?? '') === 'admin';
+$isAdmin = can('manage_users');
+$canCreate = can('create');
+$canUpdate = can('update');
+$canDelete = can('delete');
 $msg = $_GET['msg'] ?? '';
 $page = max(1, (int)($_GET['page'] ?? 1));
 $perPage = 5;
@@ -78,7 +81,9 @@ $to = min($offset + $perPage, $total);
         <?php endif; ?>
 
         <div style="margin-bottom:14px; display:flex; gap:10px;">
-            <a href="schoolCreate.php" class="btn btn-green">➕ Create School Entry</a>
+            <?php if ($canCreate): ?>
+                <a href="schoolCreate.php" class="btn btn-green">➕ Create School Entry</a>
+            <?php endif; ?>
         </div>
 
         <div class="table-wrap">
@@ -101,8 +106,15 @@ $to = min($offset + $perPage, $total);
                                 <td><?= h($s['collfullname']) ?></td>
                                 <td><?= h($s['collshortname']) ?></td>
                                 <td>
-                                    <a href="schoolUpdate.php?collid=<?= urlencode((string)$s['collid']) ?>" class="btn btn-green btn-sm">✏️ Update</a>
-                                    <a href="schoolDelete.php?collid=<?= urlencode((string)$s['collid']) ?>" class="btn btn-red btn-sm">🗑️ Delete</a>
+                                    <?php if ($canUpdate): ?>
+                                        <a href="schoolUpdate.php?collid=<?= urlencode((string)$s['collid']) ?>" class="btn btn-green btn-sm">✏️ Update</a>
+                                    <?php endif; ?>
+                                    <?php if ($canDelete): ?>
+                                        <a href="schoolDelete.php?collid=<?= urlencode((string)$s['collid']) ?>" class="btn btn-red btn-sm">🗑️ Delete</a>
+                                    <?php endif; ?>
+                                    <?php if (!$canUpdate && !$canDelete): ?>
+                                        <span style="color:#999;">-</span>
+                                    <?php endif; ?>
                                 </td>
                             </tr>
                         <?php endforeach; ?>

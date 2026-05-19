@@ -1,9 +1,9 @@
 <?php
 require_once __DIR__ . '/../../database/Service.php';
 requireLogin('../../login.php');
+requireCapability('view', '../homepage.php');
 $user = currentUser();
-$isAdmin = strtolower($user['role'] ?? '') === 'administrator' 
-        || strtolower($user['role'] ?? '') === 'admin';
+$isAdmin = can('manage_users');
 
 try {
     $schools = $pdo->query("SELECT * FROM colleges ORDER BY collfullname")->fetchAll();
@@ -44,7 +44,7 @@ try {
             <ul>
                 <li><a href="../homepage.php">Home</a></li>
                 <li><a href="../schools/schools.php">Schools</a></li>
-                <li><a href="../departments/departments.php">Departments</a></li>
+                <li><a href="../departments/chooseSchool.php">Departments</a></li>
                 <li><a href="programs.php" class="active">Programs</a></li>
                 <li><a href="../students/students.php">Students</a></li>
                 <?php if ($isAdmin): ?>

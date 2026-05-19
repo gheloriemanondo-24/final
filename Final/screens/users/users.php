@@ -3,14 +3,9 @@ require_once __DIR__ . '/../../database/Service.php';
 requireLogin('../../login.php');
 $user = currentUser();
 
-// ✅ Block non-admin users from accessing this page
-$isAdmin = strtolower($user['role'] ?? '') === 'administrator' 
-        || strtolower($user['role'] ?? '') === 'admin';
-
-if (!$isAdmin) {
-    header('Location: ../homepage.php');
-    exit;
-}
+// Only administrators can manage users
+requireCapability('manage_users', '../homepage.php');
+$isAdmin = true;
 $msg = $_GET['msg'] ?? '';
 ?>
 <!DOCTYPE html>

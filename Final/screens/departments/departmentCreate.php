@@ -1,9 +1,9 @@
 <?php
 require_once __DIR__ . '/../../database/Service.php';
 requireLogin('../../login.php');
+requireCapability('create', '../homepage.php');
 $user = currentUser();
-$isAdmin = strtolower($user['role'] ?? '') === 'administrator' 
-        || strtolower($user['role'] ?? '') === 'admin';
+$isAdmin = can('manage_users');
 
 $errors = [];
 $error = '';
@@ -26,18 +26,17 @@ foreach ($schools as $s) {
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $deptid = (int)($_POST['deptid'] ?? 0);
-    $deptfullname = trim($_POST['deptfullname'] ?? '');
-    $deptshortname = trim($_POST['deptshortname'] ?? '');
+    $deptidRaw = (string)($_POST['deptid'] ?? '');
+    $deptfullname = trim((string)($_POST['deptfullname'] ?? ''));
+    $deptshortname = trim((string)($_POST['deptshortname'] ?? ''));
     $deptcollid = (int)($_POST['deptcollid'] ?? 0);
 
-    // REPLACE with:
     $errors = [];
-    if ($deptid === 0) {
-    $errors['deptid'] = 'Department ID entry cannot be empty';
-    // If IDs must start with 21 (5 digits total, like 21001):
-    } elseif (!preg_match('/^21\d{3}$/', (string)$deptid)) {
-        $errors['deptid'] = 'Invalid ID entry or format';
+    // Validate in PHP (not HTML)
+    if (trim($deptidRaw) === '') {
+        $errors['deptid'] = 'Department ID entry cannot be empty';
+    } elseif (!isDigitsOnly($deptidRaw)) {
+        $errors['deptid'] = 'Department ID must contain numbers only';
     }
     if ($deptfullname === '')  $errors['deptfullname']  = 'Department Full Name entry cannot be empty';
     if ($deptshortname === '') $errors['deptshortname'] = 'Department Short Name entry cannot be empty';
@@ -45,6 +44,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if (empty($errors)) {
     try {
+        $deptid = (int)$deptidRaw;
         $stmt = $pdo->prepare("
             INSERT INTO departments 
             (deptid, deptfullname, deptshortname, deptcollid) 
@@ -119,7 +119,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <!-- Department ID -->
                 <div class="form-row" style="display:grid; grid-template-columns: 180px 360px 1fr; align-items:center; gap:10px; margin-bottom:12px;">
                     <label>Department ID:</label>
-                    <input type="number" id="deptid" name="deptid" value="<?= h($_POST['deptid'] ?? '') ?>">
+                    <input type="text" id="deptid" name="deptid" value="<?= h($_POST['deptid'] ?? '') ?>">
                     <span class="error-msg" style="color:red;"><?= h($errors['deptid'] ?? '') ?></span>
                 </div>
 

@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/../../database/Service.php';
 requireLogin('../../login.php');
+requireCapability('manage_users', '../homepage.php');
 $user = currentUser();
 
 $msg = $_GET['msg'] ?? '';
@@ -83,7 +84,7 @@ $to = min($offset + $perPage, $total);
             <ul>
                 <li><a href="../homepage.php">Home</a></li>
                 <li><a href="../schools/schools.php">Schools</a></li>
-                <li><a href="../departments/departments.php">Departments</a></li>
+                <li><a href="../departments/chooseSchool.php">Departments</a></li>
                 <li><a href="../programs/programs.php">Programs</a></li>
                 <li><a href="../students/students.php">Students</a></li>
                 <li><a href="users.php" class="active">Users</a></li>
@@ -130,14 +131,34 @@ $to = min($offset + $perPage, $total);
                                 <td><?= (int)$i ?></td>
                                 <td><?= h($u['username'] ?? '') ?></td>
                                 <?php if ($hasUserType): ?>
-                                    <td><?= h($u['usertype'] ?? 'Staff') ?></td>
+                                    <?php
+                                        $typeVal = (string)($u['usertype'] ?? 'Creator');
+                                        $canonType = normalizeRole($typeVal);
+                                        $typeLabel = match ($canonType) {
+                                            'administrator' => 'Administrator',
+                                            'creator'       => 'Creator',
+                                            'viewer'        => 'Viewer',
+                                            'updater'       => 'Updater',
+                                            'remover'       => 'Remover',
+                                            default         => 'Creator',
+                                        };
+                                    ?>
+                                    <td><?= h($typeLabel) ?></td>
                                 <?php endif; ?>
                                 <?php if ($hasUserRole || $hasRole): ?>
                                     <td>
                                         <?php
-                                            $roleVal = (string)($u['userrole'] ?? $u['role'] ?? 'Staff');
-                                            // Hide any legacy "Others" role in UI
-                                            echo h(strtolower($roleVal) === 'others' ? 'Staff' : $roleVal);
+                                            $roleVal = (string)($u['userrole'] ?? $u['role'] ?? 'Creator');
+                                            $canon = normalizeRole($roleVal);
+                                            $label = match ($canon) {
+                                                'administrator' => 'Administrator',
+                                                'creator'       => 'Creator',
+                                                'viewer'        => 'Viewer',
+                                                'updater'       => 'Updater',
+                                                'remover'       => 'Remover',
+                                                default         => 'Creator',
+                                            };
+                                            echo h($label);
                                         ?>
                                     </td>
                                 <?php endif; ?>

@@ -73,6 +73,76 @@ function currentUser(): ?array {
 }
 
 /**
+ * Normalize a role string to a canonical internal value.
+ * We store canonical roles in lowercase.
+ */
+function normalizeRole(string $role): string {
+    $role = strtolower(trim($role));
+    if ($role === '') return 'viewer';
+    // Backward-compatible aliases
+    if ($role === 'admin') return 'administrator';
+    if ($role === 'staff') return 'creator'; // legacy default
+    return $role;
+}
+
+/**
+ * Simple Role-Based Access Control (RBAC).
+ *
+ * Capabilities:
+ * - view:    can view lists/pages
+ * - create:  can create records
+ * - update:  can update records
+ * - delete:  can delete records
+ * - manage_users: can manage users (admin-only)
+ */
+function roleCapabilities(string $role): array {
+    $role = normalizeRole($role);
+
+    $map = [
+        'administrator' => ['view', 'create', 'update', 'delete', 'manage_users'],
+        'creator'       => ['view', 'create'],
+        'viewer'        => ['view'],
+        'updater'       => ['view', 'update'],
+        'remover'       => ['view', 'delete'],
+    ];
+
+    return $map[$role] ?? $map['viewer'];
+}
+
+function currentUserRole(): string {
+    $u = currentUser();
+    return normalizeRole((string)($u['role'] ?? 'viewer'));
+}
+
+function can(string $capability): bool {
+    return in_array($capability, roleCapabilities(currentUserRole()), true);
+}
+
+/**
+ * Require a capability; otherwise redirect.
+ */
+function requireCapability(string $capability, string $redirectPath): void {
+    if (!can($capability)) {
+        header('Location: ' . $redirectPath);
+        exit;
+    }
+}
+
+/**
+ * Basic server-side validators (to avoid relying on HTML validation).
+ */
+function isDigitsOnly(string $value): bool {
+    $value = trim($value);
+    return $value !== '' && ctype_digit($value);
+}
+
+function isLettersOnly(string $value): bool {
+    $value = trim($value);
+    // Letters + spaces only (as requested).
+    return $value !== '' && (bool)preg_match('/^[A-Za-z ]+$/', $value);
+}
+
+/**
  * Require the user to be logged in.
  * Pass the correct login path from the current page (e.g. ../../login.php).
  */
@@ -119,7 +189,8 @@ function loginUser(string $username, string $password): bool {
 
         $_SESSION['user'] = [
             'username' => (string)$row['username'],
-            'role'     => $roleValue,
+            // Store the canonical role in session so checks are consistent.
+            'role'     => normalizeRole($roleValue),
         ];
         return true;
     } catch (Throwable $e) {

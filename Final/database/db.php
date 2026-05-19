@@ -2,7 +2,7 @@
     $db_host = "localhost";
     $db_name = "usjr";
     $db_user = "root";
-    $db_pass = "root";
+    $db_pass = "mandroid";
 
     try
     {

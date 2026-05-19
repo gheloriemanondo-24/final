@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/../../database/Service.php';
 requireLogin('../../login.php');
+requireCapability('manage_users', '../homepage.php');
 $user = currentUser();
 
 $error = '';
@@ -11,8 +12,8 @@ $hasRole = tableHasColumn('users', 'role'); // older schema
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $username = trim($_POST['username'] ?? '');
     $password = (string)($_POST['password'] ?? '');
-    $usertype = trim((string)($_POST['usertype'] ?? 'Staff'));
-    $userrole = trim((string)($_POST['userrole'] ?? $_POST['role'] ?? 'Staff'));
+    $usertype = trim((string)($_POST['usertype'] ?? 'Creator'));
+    $userrole = trim((string)($_POST['userrole'] ?? $_POST['role'] ?? 'Creator'));
 
     if ($username === '' || $password === '') {
         $error = 'Username and Password are required.';
@@ -59,7 +60,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <ul>
                 <li><a href="../homepage.php">Home</a></li>
                 <li><a href="../schools/schools.php">Schools</a></li>
-                <li><a href="../departments/departments.php">Departments</a></li>
+                <li><a href="../departments/chooseSchool.php">Departments</a></li>
                 <li><a href="../programs/programs.php">Programs</a></li>
                 <li><a href="../students/students.php">Students</a></li>
                 <li><a href="users.php" class="active">Users</a></li>
@@ -95,10 +96,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <?php if ($hasUserType): ?>
                     <div class="form-row">
                         <label>User Type:</label>
-                        <?php $selType = (string)($_POST['usertype'] ?? 'Staff'); ?>
+                        <?php $selType = (string)($_POST['usertype'] ?? 'Creator'); ?>
                         <select id="usertype" name="usertype">
                             <option value="Administrator" <?= $selType === 'Administrator' ? 'selected' : '' ?>>Administrator</option>
-                            <option value="Staff" <?= $selType === 'Staff' ? 'selected' : '' ?>>Staff</option>
+                            <option value="Creator" <?= $selType === 'Creator' ? 'selected' : '' ?>>Creator</option>
+                            <option value="Viewer" <?= $selType === 'Viewer' ? 'selected' : '' ?>>Viewer</option>
+                            <option value="Updater" <?= $selType === 'Updater' ? 'selected' : '' ?>>Updater</option>
+                            <option value="Remover" <?= $selType === 'Remover' ? 'selected' : '' ?>>Remover</option>
                         </select>
                         <span class="error-msg"></span>
                     </div>
@@ -106,10 +110,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 <div class="form-row">
                     <label>User Role:</label>
-                    <?php $selRole = (string)($_POST['userrole'] ?? $_POST['role'] ?? 'Staff'); ?>
+                    <?php $selRole = (string)($_POST['userrole'] ?? $_POST['role'] ?? 'Creator'); ?>
                     <select id="<?= $hasUserRole ? 'userrole' : 'role' ?>" name="<?= $hasUserRole ? 'userrole' : 'role' ?>">
                         <option value="Administrator" <?= $selRole === 'Administrator' ? 'selected' : '' ?>>Administrator</option>
-                        <option value="Staff" <?= $selRole === 'Staff' ? 'selected' : '' ?>>Staff</option>
+                        <option value="Creator" <?= $selRole === 'Creator' ? 'selected' : '' ?>>Creator</option>
+                        <option value="Viewer" <?= $selRole === 'Viewer' ? 'selected' : '' ?>>Viewer</option>
+                        <option value="Updater" <?= $selRole === 'Updater' ? 'selected' : '' ?>>Updater</option>
+                        <option value="Remover" <?= $selRole === 'Remover' ? 'selected' : '' ?>>Remover</option>
                     </select>
                     <span class="error-msg" id="err-role"></span>
                 </div>

@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/../../database/Service.php';
 requireLogin('../../login.php');
+requireCapability('manage_users', '../homepage.php');
 $user = currentUser();
 
 $username = trim($_GET['username'] ?? '');
@@ -66,7 +67,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <ul>
                 <li><a href="../homepage.php">Home</a></li>
                 <li><a href="../schools/schools.php">Schools</a></li>
-                <li><a href="../departments/departments.php">Departments</a></li>
+                <li><a href="../departments/chooseSchool.php">Departments</a></li>
                 <li><a href="../programs/programs.php">Programs</a></li>
                 <li><a href="../students/students.php">Students</a></li>
                 <li><a href="users.php" class="active">Users</a></li>
@@ -102,13 +103,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <?php if ($hasUserType): ?>
                             <tr>
                                 <td><strong>User Type:</strong></td>
-                                <td><?= h($u['usertype'] ?? 'Staff') ?></td>
+                                <td><?= h($u['usertype'] ?? 'Creator') ?></td>
                             </tr>
                         <?php endif; ?>
                         <?php if ($hasUserRole || $hasRole): ?>
                             <tr>
                                 <td><strong>User Role:</strong></td>
-                                <td><?= h($u['userrole'] ?? $u['role'] ?? 'Staff') ?></td>
+                                <td><?= h($u['userrole'] ?? $u['role'] ?? 'Creator') ?></td>
                             </tr>
                         <?php endif; ?>
                     </tbody>

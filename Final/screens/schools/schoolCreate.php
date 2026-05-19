@@ -1,35 +1,44 @@
 <?php
 require_once __DIR__ . '/../../database/Service.php';
 requireLogin('../../login.php');
+requireCapability('create', '../homepage.php');
 $user = currentUser();
-$isAdmin = strtolower($user['role'] ?? '') === 'administrator' 
-        || strtolower($user['role'] ?? '') === 'admin';
+$isAdmin = can('manage_users');
 
 
 $error = '';
 $success = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $collid = (int)($_POST['collid'] ?? 0);
-    $collfullname = trim($_POST['collfullname'] ?? '');
-    $collshortname = trim($_POST['collshortname'] ?? '');
+    $collidRaw = (string)($_POST['collid'] ?? '');
+    $collfullname = trim((string)($_POST['collfullname'] ?? ''));
+    $collshortname = trim((string)($_POST['collshortname'] ?? ''));
     $errors = [];
 
-    // ...
-    if ($collid === 0) {
-    $errors['collid'] = 'School ID entry cannot be empty';
+    // Validate in PHP (not HTML)
+    if (trim($collidRaw) === '') {
+        $errors['collid'] = 'School ID entry cannot be empty';
+    } elseif (!isDigitsOnly($collidRaw)) {
+        $errors['collid'] = 'School ID must contain numbers only';
     }
     if ($collfullname === '') {
         $errors['collfullname'] = 'School Full Name entry cannot be empty';
+    } elseif (!isLettersOnly($collfullname)) {
+        $errors['collfullname'] = 'School Full Name must contain letters only';
     }
     if ($collshortname === '') {
         $errors['collshortname'] = 'School Short Name entry cannot be empty';
+    } elseif (!isLettersOnly($collshortname)) {
+        $errors['collshortname'] = 'School Short Name must contain letters only';
     }
 
     if (empty($errors)) {
         try {
+            $collid = (int)$collidRaw;
             $stmt = $pdo->prepare("INSERT INTO colleges (collid, collfullname, collshortname) VALUES (?, ?, ?)");
             $stmt->execute([$collid, $collfullname, $collshortname]);
-            $success = 'School entry created successfully';
+            // PRG: avoid refilling the form after successful create
+            header('Location: schools.php?msg=created');
+            exit;
         } catch (Throwable $e) {
             $error = 'Could not create school. (Maybe duplicate ID?)';
         }
@@ -59,7 +68,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <ul>
                 <li><a href="../homepage.php">Home</a></li>
                 <li><a href="schools.php" class="active">Schools</a></li>
-                <li><a href="../departments/departments.php">Departments</a></li>
+                <li><a href="../departments/chooseSchool.php">Departments</a></li>
                 <li><a href="../programs/programs.php">Programs</a></li>
                 <li><a href="../students/students.php">Students</a></li>
                 <?php if ($isAdmin): ?>
@@ -86,7 +95,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <form id="schoolCreateForm" method="POST" action="schoolCreate.php">
                 <div class="form-row" style="display:grid; grid-template-columns: 180px 360px 1fr; align-items:center; gap:10px; margin-bottom:12px;">
                     <label>School ID:</label>
-                    <input type="number" id="collid" name="collid" value="<?= h($_POST['collid'] ?? '') ?>">
+                    <input type="text" id="collid" name="collid" value="<?= h($_POST['collid'] ?? '') ?>">
                     <span class="error-msg" id="err-id" style="color:red;"><?= h($errors['collid'] ?? '') ?>
                     </span>
                 </div>

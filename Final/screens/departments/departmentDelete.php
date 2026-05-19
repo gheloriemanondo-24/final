@@ -1,9 +1,9 @@
 <?php
 require_once __DIR__ . '/../../database/Service.php';
 requireLogin('../../login.php');
+requireCapability('delete', '../homepage.php');
 $user = currentUser();
-$isAdmin = strtolower($user['role'] ?? '') === 'administrator' 
-        || strtolower($user['role'] ?? '') === 'admin';
+$isAdmin = can('manage_users');
 
 $deptid = (int)($_GET['deptid'] ?? 0);
 $error = '';
@@ -24,8 +24,8 @@ try {
     $dept = $stmt->fetch();
 
 } catch (Throwable $e) {
-
-    die($e->getMessage());
+    header('Location: departments.php?msg=db_error');
+    exit;
 
 }
 
@@ -168,7 +168,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     class="btn btn-red"
                     <?= $programCount > 0 ? 'style="opacity:.5; pointer-events:none;"' : '' ?>
                 >Yes, Delete Entry</button>
-                <a href="departments.php" class="btn btn-gray">No, Cancel</a>
+                <a href="departments.php?collid=<?= urlencode((string)($dept['deptcollid'] ?? 0)) ?>" class="btn btn-gray">No, Cancel</a>
             </form>
         </div>
     </main>
