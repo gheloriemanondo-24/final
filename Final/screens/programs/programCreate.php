@@ -170,6 +170,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 <div class="form-actions" style="display:flex; gap:8px; margin-top:16px;">
                     <button type="submit" class="btn btn-green">Save New Program Entry</button>
+                    <a href="programs.php" class="btn btn-gray">Back</a>
                     <a href="programCreate.php" class="btn btn-gray">Reset Form</a>
                     <a href="programs.php" class="btn btn-red">Exit</a>
                 </div>

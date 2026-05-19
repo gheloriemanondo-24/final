@@ -61,15 +61,7 @@ try {
     <?php endforeach; ?>
 </select>
                 <button type="submit" class="btn btn-green" style="width:150px; height:38px; display:flex; justify-content:center; align-items:center;">Select Schools</button>
-                <a href="../schools/schools.php"
-   class="btn btn-green"
-   style="width:150px; height:38px;
-          display:flex;
-          justify-content:center;
-          align-items:center;
-          text-decoration:none;">
-    List of Schools
-</a>
+            
             </div>
             </div>
         </form>
