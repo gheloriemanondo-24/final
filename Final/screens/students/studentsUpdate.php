@@ -7,6 +7,8 @@ $isAdmin = can('manage_users');
 
 $studid = (int)($_GET['studid'] ?? 0);
 $error = '';
+$info = '';
+$errors = [];
 
 $schools = [];
 $departments = [];
@@ -46,9 +48,40 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $studprogid = (int)($_POST['studprogid'] ?? 0);
     $studyear = (int)($_POST['studyear'] ?? 0);
 
-    if ($studlastname === '' || $studfirstname === '' || $studcollid === 0 || $studcolldeptid === 0 || $studprogid === 0 || $studyear === 0) {
-        $error = 'Please fill in all required fields.';
+    // Validate ONLY in PHP (not in HTML attributes)
+    $errors = [];
+    if ($studfirstname === '' || !isLettersOnly($studfirstname)) $errors['studfirstname'] = 'First Name must contain letters only.';
+    if ($studmidname === '' || !isLettersOnly($studmidname)) $errors['studmidname'] = 'Middle Name must contain letters only.';
+    if ($studlastname === '' || !isLettersOnly($studlastname)) $errors['studlastname'] = 'Last Name must contain letters only.';
+    if ($studcollid === 0) $errors['studcollid'] = 'Please select a School.';
+    if ($studcolldeptid === 0) $errors['studcolldeptid'] = 'Please select a Department.';
+    if ($studprogid === 0) $errors['studprogid'] = 'Please select a Program.';
+    if ($studyear === 0) $errors['studyear'] = 'Please enter Year.';
+
+    if (!empty($errors)) {
+        $error = 'Please fix the highlighted fields.';
     } else {
+        // If nothing changed, do not run UPDATE and do not show success message.
+        $origFirst = trim((string)($stud['studfirstname'] ?? ''));
+        $origMid   = trim((string)($stud['studmidname'] ?? ''));
+        $origLast  = trim((string)($stud['studlastname'] ?? ''));
+        $origColl  = (int)($stud['studcollid'] ?? 0);
+        $origDept  = (int)($stud['studcolldeptid'] ?? 0);
+        $origProg  = (int)($stud['studprogid'] ?? 0);
+        $origYear  = (int)($stud['studyear'] ?? 0);
+
+        $noChanges =
+            $studfirstname === $origFirst &&
+            $studmidname === $origMid &&
+            $studlastname === $origLast &&
+            $studcollid === $origColl &&
+            $studcolldeptid === $origDept &&
+            $studprogid === $origProg &&
+            $studyear === $origYear;
+
+        if ($noChanges) {
+            $info = 'No changes detected.';
+        } else {
         try {
             $stmt = $pdo->prepare("
                 UPDATE students
@@ -60,6 +93,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             exit;
         } catch (Throwable $e) {
             $error = 'Could not update student.';
+        }
         }
     }
 }
@@ -104,6 +138,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             <div class="alert alert-info">ℹ️ Basic PHP update (updates database).</div>
 
+            <?php if ($info): ?>
+                <div class="alert alert-info">ℹ️ <?= h($info) ?></div>
+            <?php endif; ?>
+
             <?php if ($error): ?>
                 <div class="alert alert-danger">❌ <?= h($error) ?></div>
             <?php endif; ?>
@@ -111,26 +149,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <form id="studUpdateForm" method="POST" action="studentUpdate.php?studid=<?= urlencode((string)$studid) ?>">
                 <div class="form-row">
                     <label>Student ID:</label>
-                    <input type="number" id="studid" readonly value="<?= h($stud['studid']) ?>">
+                    <input type="text" id="studid" readonly value="<?= h($stud['studid']) ?>">
                     <span class="error-msg"></span>
                 </div>
 
                 <div class="form-row">
                     <label>Last Name:</label>
                     <input type="text" id="studlastname" name="studlastname" value="<?= h($_POST['studlastname'] ?? $stud['studlastname']) ?>">
-                    <span class="error-msg" id="err-ln"></span>
+                    <span class="error-msg" id="err-ln"><?= h($errors['studlastname'] ?? '') ?></span>
                 </div>
 
                 <div class="form-row">
                     <label>First Name:</label>
                     <input type="text" id="studfirstname" name="studfirstname" value="<?= h($_POST['studfirstname'] ?? $stud['studfirstname']) ?>">
-                    <span class="error-msg" id="err-fn"></span>
+                    <span class="error-msg" id="err-fn"><?= h($errors['studfirstname'] ?? '') ?></span>
                 </div>
 
                 <div class="form-row">
                     <label>Middle Name:</label>
                     <input type="text" id="studmidname" name="studmidname" value="<?= h($_POST['studmidname'] ?? $stud['studmidname']) ?>">
-                    <span class="error-msg"></span>
+                    <span class="error-msg"><?= h($errors['studmidname'] ?? '') ?></span>
                 </div>
 
                 <div class="form-row">
@@ -144,7 +182,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             </option>
                         <?php endforeach; ?>
                     </select>
-                    <span class="error-msg"></span>
+                    <span class="error-msg"><?= h($errors['studcollid'] ?? '') ?></span>
                 </div>
 
                 <div class="form-row">
@@ -158,7 +196,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             </option>
                         <?php endforeach; ?>
                     </select>
-                    <span class="error-msg"></span>
+                    <span class="error-msg"><?= h($errors['studcolldeptid'] ?? '') ?></span>
                 </div>
 
                 <div class="form-row">
@@ -172,13 +210,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             </option>
                         <?php endforeach; ?>
                     </select>
-                    <span class="error-msg"></span>
+                    <span class="error-msg"><?= h($errors['studprogid'] ?? '') ?></span>
                 </div>
 
                 <div class="form-row">
                     <label>Year:</label>
                     <input type="number" id="studyear" name="studyear" min="1" max="6" value="<?= h($_POST['studyear'] ?? $stud['studyear']) ?>">
-                    <span class="error-msg" id="err-year"></span>
+                    <span class="error-msg" id="err-year"><?= h($errors['studyear'] ?? '') ?></span>
                 </div>
 
                 <div class="form-actions" style="display:flex; gap:8px;">

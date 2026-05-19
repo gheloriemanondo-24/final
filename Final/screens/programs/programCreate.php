@@ -6,6 +6,7 @@ $user = currentUser();
 $isAdmin = can('manage_users');
 
 $error = '';
+$errors = [];
 $schools = [];
 $departments = [];
 
@@ -33,10 +34,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $progcollid = (int)($_POST['progcollid'] ?? 0);
     $progcolldeptid = (int)($_POST['progcolldeptid'] ?? 0);
 
-    if (trim($progidRaw) === '' || !isDigitsOnly($progidRaw)) {
-        $error = 'Program ID is required (numbers only).';
-    } elseif ($progfullname === '' || $progcollid === 0 || $progcolldeptid === 0) {
-        $error = 'Program Full Name, School, and Department are required.';
+    // Validate (match style used in Schools/Departments)
+    $errors = [];
+    if (trim($progidRaw) === '') {
+        $errors['progid'] = 'Program ID entry cannot be empty';
+    } elseif (!isDigitsOnly($progidRaw)) {
+        $errors['progid'] = 'Program ID must contain numbers only';
+    } elseif (!preg_match('/^\d{10}$/', $progidRaw)) {
+        $errors['progid'] = 'Program ID must be exactly 10 digits';
+    }
+    if ($progcollid === 0) $errors['progcollid'] = 'Please select a School.';
+    if ($progcolldeptid === 0) $errors['progcolldeptid'] = 'Please select a Department.';
+    if ($progfullname === '') $errors['progfullname'] = 'Program Full Name entry cannot be empty';
+
+    if (!empty($errors)) {
+        $error = 'Please fix the highlighted fields.';
     } else {
         try {
             // Server-side check: department must belong to selected school
@@ -47,7 +59,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 throw new RuntimeException('Invalid department');
             }
             if ((int)$d['deptcollid'] !== $progcollid) {
-                $error = 'Selected Department does not belong to the selected School.';
+                $errors['progcolldeptid'] = 'Selected Department does not belong to the selected School.';
+                $error = 'Please fix the highlighted fields.';
             } else {
                 $progid = (int)$progidRaw;
                 $stmt = $pdo->prepare("INSERT INTO programs (progid, progfullname, progshortname, progcollid, progcolldeptid) VALUES (?, ?, ?, ?, ?)");
@@ -117,7 +130,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             </option>
                         <?php endforeach; ?>
                     </select>
-                    <span class="error-msg" id="err-school"></span>
+                    <span class="error-msg" id="err-school"><?= h($errors['progcollid'] ?? '') ?></span>
                 </div>
 
                 <div class="form-row" style="display:grid; grid-template-columns: 180px 360px 1fr; align-items:center; gap:10px; margin-bottom:12px;">
@@ -130,19 +143,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             </option>
                         <?php endforeach; ?>
                     </select>
-                    <span class="error-msg" id="err-dept"></span>
+                    <span class="error-msg" id="err-dept"><?= h($errors['progcolldeptid'] ?? '') ?></span>
                 </div>
 
                 <div class="form-row" style="display:grid; grid-template-columns: 180px 360px 1fr; align-items:center; gap:10px; margin-bottom:12px;">
                     <label>Program ID:</label>
                     <input type="text" id="progid" name="progid" value="<?= h($_POST['progid'] ?? '') ?>">
-                    <span class="error-msg" id="err-id"></span>
+                    <?php if (!empty($errors['progid'])): ?>
+                        <span class="error-msg" id="err-id" style="color:red;"><?= h($errors['progid'] ?? '') ?></span>
+                    <?php else: ?>
+                        <span class="error-msg" id="err-id" style="color:#666;">Format: exactly 10 digits (example: 2111001001)</span>
+                    <?php endif; ?>
                 </div>
 
                 <div class="form-row" style="display:grid; grid-template-columns: 180px 360px 1fr; align-items:center; gap:10px; margin-bottom:12px;">
                     <label>Program Full Name:</label>
                     <input type="text" id="progfullname" name="progfullname" value="<?= h($_POST['progfullname'] ?? '') ?>">
-                    <span class="error-msg" id="err-name"></span>
+                    <span class="error-msg" id="err-name"><?= h($errors['progfullname'] ?? '') ?></span>
                 </div>
 
                 <div class="form-row" style="display:grid; grid-template-columns: 180px 360px 1fr; align-items:center; gap:10px; margin-bottom:12px;">

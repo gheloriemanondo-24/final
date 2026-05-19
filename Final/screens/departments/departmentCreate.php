@@ -32,15 +32,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $deptcollid = (int)($_POST['deptcollid'] ?? 0);
 
     $errors = [];
-    // Validate in PHP (not HTML)
+    // Validate in PHP (not HTML) - per-field errors beside each input
     if (trim($deptidRaw) === '') {
         $errors['deptid'] = 'Department ID entry cannot be empty';
     } elseif (!isDigitsOnly($deptidRaw)) {
         $errors['deptid'] = 'Department ID must contain numbers only';
     }
-    if ($deptfullname === '')  $errors['deptfullname']  = 'Department Full Name entry cannot be empty';
-    if ($deptshortname === '') $errors['deptshortname'] = 'Department Short Name entry cannot be empty';
-    if ($deptcollid === 0)     $errors['deptcollid']    = 'Please select a school';
+    if ($deptfullname === '') {
+        $errors['deptfullname'] = 'Department Full Name entry cannot be empty';
+    } elseif (!isLettersOnly($deptfullname)) {
+        $errors['deptfullname'] = 'Department Full Name must contain letters only';
+    }
+    if ($deptshortname === '') {
+        $errors['deptshortname'] = 'Department Short Name entry cannot be empty';
+    } elseif (!isLettersOnly($deptshortname)) {
+        $errors['deptshortname'] = 'Department Short Name must contain letters only';
+    }
+    if ($deptcollid === 0) {
+        $errors['deptcollid'] = 'Please select a School.';
+    }
 
     if (empty($errors)) {
     try {
@@ -120,7 +130,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <div class="form-row" style="display:grid; grid-template-columns: 180px 360px 1fr; align-items:center; gap:10px; margin-bottom:12px;">
                     <label>Department ID:</label>
                     <input type="text" id="deptid" name="deptid" value="<?= h($_POST['deptid'] ?? '') ?>">
-                    <span class="error-msg" style="color:red;"><?= h($errors['deptid'] ?? '') ?></span>
+                    <?php if (!empty($errors['deptid'])): ?>
+                        <span class="error-msg" style="color:red;"><?= h($errors['deptid'] ?? '') ?></span>
+                    <?php else: ?>
+                        <span class="error-msg" style="color:#666;">Format: numbers only (example: 11001)</span>
+                    <?php endif; ?>
                 </div>
 
                 <!-- Department Full Name -->

@@ -6,6 +6,7 @@ $user = currentUser();
 $isAdmin = can('manage_users');
 
 $error = '';
+$errors = [];
 $schools = [];
 $departments = [];
 $programs = [];
@@ -44,23 +45,40 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $studidStr = $studidRaw;
     $deptStr = $studcolldeptid > 0 ? str_pad((string)$studcolldeptid, 5, '0', STR_PAD_LEFT) : '';
 
-    if (
-    $studidStr === '' ||
-    !preg_match('/^\d{10}$/', $studidStr) ||
-    $studfirstname === '' ||
-    $studmidname === '' ||
-    $studlastname === '' ||
-    $studcollid === 0 ||
-    $studcolldeptid === 0 ||
-    $studprogid === 0 ||
-    $studyear === 0
-) {
-    $error = 'All fields are required. Student ID must be exactly 10 digits.';
-} elseif ((int)$studidStr > 2147483647) {
-    // In the provided SQL, students.studid is INT (max 2147483647).
-    // IDs higher than this will fail to insert.
-    $error = 'Student ID is too large for the database. Please follow the suggested format (e.g. 21 + deptid + 001 like 2111001001).';
-} else {
+    // Validate ONLY in PHP (not in HTML attributes)
+    $errors = [];
+
+    if (trim($studidStr) === '') {
+        $errors['studid'] = 'Student ID entry cannot be empty';
+    } elseif (!preg_match('/^\d+$/', $studidStr)) {
+        $errors['studid'] = 'Student ID must contain numbers only';
+    } elseif (!preg_match('/^\d{10}$/', $studidStr)) {
+        $errors['studid'] = 'Student ID must be exactly 10 digits';
+    } elseif ((int)$studidStr > 2147483647) {
+        // In the provided SQL, students.studid is INT (max 2147483647).
+        // IDs higher than this will fail to insert.
+        $errors['studid'] = 'Student ID is too large for the database. Please follow the suggested format (e.g. 21 + deptid + 001 like 2111001001).';
+    }
+
+    if ($studfirstname === '' || !isLettersOnly($studfirstname)) {
+        $errors['studfirstname'] = 'First Name must contain letters only.';
+    }
+    if ($studmidname === '' || !isLettersOnly($studmidname)) {
+        $errors['studmidname'] = 'Middle Name must contain letters only.';
+    }
+    if ($studlastname === '' || !isLettersOnly($studlastname)) {
+        $errors['studlastname'] = 'Last Name must contain letters only.';
+    }
+
+    if ($studcollid === 0) $errors['studcollid'] = 'Please select a School.';
+    if ($studcolldeptid === 0) $errors['studcolldeptid'] = 'Please select a Department.';
+    if ($studprogid === 0) $errors['studprogid'] = 'Please select a Program.';
+    if ($studyear === 0) $errors['studyear'] = 'Please enter Year.';
+
+    if (!empty($errors)) {
+        // Keep a simple top message for visibility, while also showing per-field errors.
+        $error = 'Please fix the highlighted fields.';
+    } else {
     try {
         $stmt = $pdo->prepare("
             INSERT INTO students
@@ -98,6 +116,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 }
 ?>
+<!DOCTYPE html>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -145,8 +164,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <form id="studCreateForm" method="POST" action="studentCreate.php">
                 <div class="form-row">
                     <label>Student ID:</label>
-                    <input type="number" id="studid" name="studid" value="<?= h($_POST['studid'] ?? '') ?>" required>
-                    <span class="error-msg" id="err-id"></span>
+                    <input type="text" id="studid" name="studid" value="<?= h($_POST['studid'] ?? '') ?>">
+                    <?php if (!empty($errors['studid'])): ?>
+                        <span class="error-msg" id="err-id"><?= h($errors['studid'] ?? '') ?></span>
+                    <?php else: ?>
+                        <span class="error-msg" id="err-id" style="color:#666;">Format: numbers only, exactly 10 digits (example: 2111001001)</span>
+                    <?php endif; ?>
                 </div>
                 <p class="total-row" style="margin-top:-6px;">
                     Example: <strong>21: SOFA</strong> | <strong>21001: DOFA</strong> | <strong>2121001001</strong>
@@ -154,20 +177,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 <div class="form-row">
                     <label>Student First Name:</label>
-                    <input type="text" id="studfirstname" name="studfirstname" value="<?= h($_POST['studfirstname'] ?? '') ?>" required>
-                    <span class="error-msg" id="err-fn"></span>
+                    <input type="text" id="studfirstname" name="studfirstname" value="<?= h($_POST['studfirstname'] ?? '') ?>">
+                    <span class="error-msg" id="err-fn"><?= h($errors['studfirstname'] ?? '') ?></span>
                 </div>
 
                 <div class="form-row">
                     <label>Student Middle Name:</label>
-                    <input type="text" id="studmidname" name="studmidname" value="<?= h($_POST['studmidname'] ?? '') ?>" required>
-                    <span class="error-msg"></span>
+                    <input type="text" id="studmidname" name="studmidname" value="<?= h($_POST['studmidname'] ?? '') ?>">
+                    <span class="error-msg"><?= h($errors['studmidname'] ?? '') ?></span>
                 </div>
 
                 <div class="form-row">
                     <label>Student Last Name:</label>
-                    <input type="text" id="studlastname" name="studlastname" value="<?= h($_POST['studlastname'] ?? '') ?>" required>
-                    <span class="error-msg" id="err-ln"></span>
+                    <input type="text" id="studlastname" name="studlastname" value="<?= h($_POST['studlastname'] ?? '') ?>">
+                    <span class="error-msg" id="err-ln"><?= h($errors['studlastname'] ?? '') ?></span>
                 </div>
 
                 <div class="form-row">
@@ -180,7 +203,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             </option>
                         <?php endforeach; ?>
                     </select>
-                    <span class="error-msg" id="err-school"></span>
+                    <span class="error-msg" id="err-school"><?= h($errors['studcollid'] ?? '') ?></span>
                 </div>
 
                 <div class="form-row">
@@ -193,7 +216,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             </option>
                         <?php endforeach; ?>
                     </select>
-                    <span class="error-msg" id="err-dept"></span>
+                    <span class="error-msg" id="err-dept"><?= h($errors['studcolldeptid'] ?? '') ?></span>
                 </div>
 
                 <div class="form-row">
@@ -206,13 +229,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             </option>
                         <?php endforeach; ?>
                     </select>
-                    <span class="error-msg" id="err-prog"></span>
+                    <span class="error-msg" id="err-prog"><?= h($errors['studprogid'] ?? '') ?></span>
                 </div>
 
                 <div class="form-row">
                     <label>Year:</label>
                     <input type="number" id="studyear" name="studyear" min="1" max="6" placeholder="1-6" value="<?= h($_POST['studyear'] ?? '') ?>" required>
-                    <span class="error-msg" id="err-year"></span>
+                    <span class="error-msg" id="err-year"><?= h($errors['studyear'] ?? '') ?></span>
                 </div>
 
                 <div class="form-actions">

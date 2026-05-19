@@ -8,6 +8,7 @@ $isAdmin = can('manage_users');
 
 $error = '';
 $success = '';
+$errors = [];
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $collidRaw = (string)($_POST['collid'] ?? '');
     $collfullname = trim((string)($_POST['collfullname'] ?? ''));
@@ -96,8 +97,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <div class="form-row" style="display:grid; grid-template-columns: 180px 360px 1fr; align-items:center; gap:10px; margin-bottom:12px;">
                     <label>School ID:</label>
                     <input type="text" id="collid" name="collid" value="<?= h($_POST['collid'] ?? '') ?>">
-                    <span class="error-msg" id="err-id" style="color:red;"><?= h($errors['collid'] ?? '') ?>
-                    </span>
+                    <?php if (!empty($errors['collid'])): ?>
+                        <span class="error-msg" id="err-id" style="color:red;"><?= h($errors['collid'] ?? '') ?></span>
+                    <?php else: ?>
+                        <span class="error-msg" id="err-id" style="color:#666;">Format: numbers only (example: 11)</span>
+                    <?php endif; ?>
                 </div>
 
                 <div class="form-row" style="display:grid; grid-template-columns: 180px 360px 1fr; align-items:center; gap:10px; margin-bottom:12px;">
