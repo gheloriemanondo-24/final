@@ -82,6 +82,6 @@ $isAdmin = can('manage_users');
             <?php endif; ?>
         </div>
     </main>
-    <script src="../assets/ui.js" defer></script>
+
 </body>
 </html>

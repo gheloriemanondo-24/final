@@ -359,59 +359,6 @@ if (!empty($titleParts)) $pageTitle = 'Student List - ' . implode(' / ', $titleP
         </div>
     </main>
 
-    <script>
-        // Filtering sequence:
-        // - Must choose School first, then Department, then (optional) Program.
-        // - Department options depend on School.
-        // - Program options depend on School + Department.
-        const schoolSelect = document.getElementById('collid');
-        const deptSelect = document.getElementById('deptid');
-        const progSelect = document.getElementById('progid');
-
-        function setEnabled() {
-            deptSelect.disabled = !schoolSelect.value;
-            progSelect.disabled = !(schoolSelect.value && deptSelect.value);
-        }
-
-        function filterDeptOptions() {
-            const collid = schoolSelect.value;
-            const opts = Array.from(deptSelect.querySelectorAll('option[data-collid]'));
-            opts.forEach(o => o.hidden = (collid && o.dataset.collid !== collid));
-            if (deptSelect.selectedOptions[0]?.hidden) deptSelect.value = '';
-        }
-
-        function filterProgramOptions() {
-            const collid = schoolSelect.value;
-            const deptid = deptSelect.value;
-            const opts = Array.from(progSelect.querySelectorAll('option[data-collid]'));
-            opts.forEach(o => {
-                const matchSchool = o.dataset.collid === collid;
-                const matchDept = o.dataset.deptid === deptid;
-                o.hidden = !(matchSchool && matchDept);
-            });
-            if (progSelect.selectedOptions[0]?.hidden) progSelect.value = '';
-        }
-
-        schoolSelect.addEventListener('change', () => {
-            // Reset chain
-            deptSelect.value = '';
-            progSelect.value = '';
-            filterDeptOptions();
-            setEnabled();
-            filterProgramOptions();
-        });
-        deptSelect.addEventListener('change', () => {
-            // Reset program when dept changes
-            progSelect.value = '';
-            setEnabled();
-            filterProgramOptions();
-        });
-
-        // initial
-        filterDeptOptions();
-        setEnabled();
-        filterProgramOptions();
-    </script>
-    <script src="../../assets/ui.js" defer></script>
+  
 </body>
 </html>

@@ -192,7 +192,5 @@ $to = min($offset + $perPage, $total);
         Total of: <?= (int)$total ?> departments in the database
     </div>
 </main>
-
-    <script src="../../assets/ui.js" defer></script>
 </body>
 </html>

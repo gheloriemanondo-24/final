@@ -228,41 +228,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </div>
     </main>
 
-    <script>
-        // basic dropdown filtering
-        const schoolSelect = document.getElementById('studcollid');
-        const deptSelect = document.getElementById('studcolldeptid');
-        const progSelect = document.getElementById('studprogid');
-
-        function filterDeptOptions() {
-            const collid = schoolSelect.value;
-            const opts = Array.from(deptSelect.querySelectorAll('option[data-collid]'));
-            opts.forEach(o => o.hidden = (collid && o.dataset.collid !== collid));
-            if (deptSelect.selectedOptions[0]?.hidden) deptSelect.value = '';
-        }
-
-        function filterProgramOptions() {
-            const collid = schoolSelect.value;
-            const selectedDept = deptSelect.value;
-            const opts = Array.from(progSelect.querySelectorAll('option[data-collid]'));
-            opts.forEach(o => {
-                if (!collid) { o.hidden = false; return; }
-                const matchSchool = o.dataset.collid === collid;
-                const matchDept = !selectedDept || o.dataset.deptid === selectedDept;
-                o.hidden = !(matchSchool && matchDept);
-            });
-            if (progSelect.selectedOptions[0]?.hidden) progSelect.value = '';
-        }
-
-        function onSchoolChange() {
-            filterDeptOptions();
-            filterProgramOptions();
-        }
-
-        schoolSelect.addEventListener('change', onSchoolChange);
-        deptSelect.addEventListener('change', filterProgramOptions);
-        onSchoolChange();
-    </script>
-    <script src="../../assets/ui.js" defer></script>
+    
 </body>
 </html>

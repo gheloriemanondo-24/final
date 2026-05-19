@@ -240,16 +240,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </div>
     </main>
 
-    <script>
-        // UI-only reset (user can type a new password after clearing).
-        document.getElementById('btnResetPassword')?.addEventListener('click', () => {
-            const p = document.getElementById('password');
-            const c = document.getElementById('confirm_password');
-            if (p) p.value = '';
-            if (c) c.value = '';
-            p?.focus();
-        });
-    </script>
-    <script src="../../assets/ui.js" defer></script>
+   
 </body>
 </html>

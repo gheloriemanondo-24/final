@@ -199,7 +199,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <option value="">Select School</option>
                         <?php foreach ($schools as $s): ?>
                             <option value="<?= h($s['collid']) ?>" <?= (string)$s['collid'] === (string)($_POST['studcollid'] ?? '') ? 'selected' : '' ?>>
-                                <?= h($s['collfullname'] . ' (' . $s['collshortname'] . ')') ?>
+                                <?= h($s['collfullname']) ?>
                             </option>
                         <?php endforeach; ?>
                     </select>
@@ -247,48 +247,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </div>
     </main>
 
-    <script>
-        const schoolSelect = document.getElementById('studcollid');
-        const deptSelect = document.getElementById('studcolldeptid');
-        const progSelect = document.getElementById('studprogid');
-        const studIdInput = document.getElementById('studid');
-
-        function filterDeptOptions() {
-            const collid = schoolSelect.value;
-            const opts = Array.from(deptSelect.querySelectorAll('option[data-collid]'));
-            opts.forEach(o => o.hidden = (collid && o.dataset.collid !== collid));
-            if (deptSelect.selectedOptions[0]?.hidden) deptSelect.value = '';
-        }
-
-        function filterProgramOptions() {
-            const collid = schoolSelect.value;
-            const selectedDept = deptSelect.value;
-            const opts = Array.from(progSelect.querySelectorAll('option[data-collid]'));
-            opts.forEach(o => {
-                if (!collid) { o.hidden = false; return; }
-                const matchSchool = o.dataset.collid === collid;
-                const matchDept = !selectedDept || o.dataset.deptid === selectedDept;
-                o.hidden = !(matchSchool && matchDept);
-            });
-            if (progSelect.selectedOptions[0]?.hidden) progSelect.value = '';
-        }
-
-        function onSchoolChange() {
-            filterDeptOptions();
-            filterProgramOptions();
-        }
-
-        schoolSelect.addEventListener('change', onSchoolChange);
-        deptSelect.addEventListener('change', () => {
-            filterProgramOptions();
-            // If user hasn't typed an ID yet, show a suggested format: 21 + deptid + 001
-            const dept = deptSelect.value;
-            if (dept && !studIdInput.value) {
-                studIdInput.placeholder = `e.g. 21${dept}001`;
-            }
-        });
-        onSchoolChange();
-    </script>
-    <script src="../../assets/ui.js" defer></script>
+    
 </body>
 </html>

@@ -42,7 +42,7 @@ try {
 
 try {
     // Two-step UI:
-    // - selecting a school should NOT open another page; it only enables the department dropdown.
+    // - user selects a school, then must click "Select School" to confirm (enables department).
     // - action=department: show the program list for the selected school+department.
     if ($action === 'school') {
         $deptid = 0;
@@ -72,20 +72,24 @@ try {
         }
     }
 
-    // If a department is chosen but no school yet, infer the school.
-    if ($deptid > 0 && $collid === 0) {
-        $stmt = $pdo->prepare("SELECT deptcollid FROM departments WHERE deptid = ? AND deptid <> 0");
-        $stmt->execute([$deptid]);
-        $d = $stmt->fetch();
-        if ($d) $collid = (int)$d['deptcollid'];
+    // Enforce sequence strictly:
+    // - Do NOT allow selecting a department unless the school was confirmed (action=school).
+    // - Do NOT auto-infer or auto-fix school from department.
+    if ($deptid > 0 && $action !== 'department') {
+        // Dept selected without clicking "Select Department" flow; just ignore it.
+        $deptid = 0;
     }
-
-    // If dept belongs to a different school than selected, auto-fix to prevent DB errors.
     if ($deptid > 0 && $collid > 0) {
+        // Validate dept belongs to selected school
         $stmt = $pdo->prepare("SELECT deptcollid FROM departments WHERE deptid = ? AND deptid <> 0");
         $stmt->execute([$deptid]);
         $d = $stmt->fetch();
-        if ($d) $collid = (int)$d['deptcollid'];
+        if (!$d || (int)$d['deptcollid'] !== $collid) {
+            $errors['deptid'] = 'Selected Department does not belong to the selected School.';
+            $error = 'Please fix the highlighted fields.';
+            $deptid = 0;
+            $shouldList = false;
+        }
     }
 
     if ($collid > 0) {
@@ -337,9 +341,9 @@ $pageTitle = 'Select School and Department';
 </main>
 
     <script>
-        // Client-side behavior:
-        // - Enable the department dropdown immediately after a school is selected.
-        // - Filter department options to those that belong to the selected school.
+        // Client-side behavior (SEQUENCE):
+        // - User must click "Select School" to enable the department dropdown.
+        // - Changing the school always resets + locks the department dropdown again.
         const schoolSelect = document.getElementById('collid');
         const deptSelect = document.getElementById('deptid');
         const deptBtn = document.getElementById('btn-dept');
@@ -358,17 +362,15 @@ $pageTitle = 'Select School and Department';
             if (deptSelect.selectedOptions[0]?.hidden) deptSelect.value = '';
         }
 
-        // Changing the school resets department and enables the department dropdown.
+        // Changing the school resets department and LOCKS the department dropdown.
         schoolSelect.addEventListener('change', () => {
             deptSelect.value = '';
-            setDeptEnabled(!!schoolSelect.value);
+            setDeptEnabled(false);
             filterDeptOptions();
         });
 
-        // Initial load
-        setDeptEnabled(!!schoolSelect.value);
+        // Initial load: keep whatever the server rendered (enabled only after clicking "Select School")
         filterDeptOptions();
     </script>
-    <script src="../../assets/ui.js" defer></script>
 </body>
 </html>

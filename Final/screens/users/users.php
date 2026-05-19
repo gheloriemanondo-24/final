@@ -61,6 +61,5 @@ $msg = $_GET['msg'] ?? '';
             </div>
         </div>
     </main>
-    <script src="../../assets/ui.js" defer></script>
 </body>
 </html>
